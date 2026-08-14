@@ -62,11 +62,11 @@ ModuleNotFoundError: No module named 'crewai'""",
 
 # TODO 1 - build the model client. Note the "openrouter/" prefix: CrewAI
 #          reads the provider from the model name.
-# llm = LLM(
-#     model="openrouter/openai/gpt-4o-mini",
-#     temperature=0,
-#     api_key=api_key,
-# )
+llm = LLM(
+    model="openrouter/openai/gpt-4o-mini",
+    temperature=0,
+    api_key=api_key,
+)
 
 
 def build_crew() -> Crew:
@@ -76,9 +76,16 @@ def build_crew() -> Crew:
     #          backstory - how they behave (plain language, no jargon,
     #                      never guesses at code it cannot see)
     helper = Agent(
-        role="TODO",
-        goal="TODO",
-        backstory="TODO",
+        role="Patient debugging tutor",
+        goal=(
+            "Explain Python errors clearly in 2-3 plain-language sentences and"
+            " provide a concise, actionable fix when requested."
+        ),
+        backstory=(
+            "You're patient and avoid jargon. You never guess at code you can't"
+            " see; instead ask for missing context. Keep answers short and"
+            " focused on the error and how to fix it."
+        ),
         llm=llm,          # <- keep this. Without it CrewAI looks for OPENAI_API_KEY.
         verbose=True,
     )
@@ -87,8 +94,11 @@ def build_crew() -> Crew:
     #          {error_text} is filled in from kickoff(inputs=...).
     #          Ask for 2-3 sentences, plain language, no fix yet.
     explain_task = Task(
-        description="TODO: a student hit this error: {error_text}",
-        expected_output="TODO: say what 'done' looks like.",
+        description="A student hit this error: {error_text}",
+        expected_output=(
+            "2-3 plain-language sentences describing the root cause of the"
+            " error (what's happening and why). No fix yet."
+        ),
         agent=helper,
     )
 
@@ -108,10 +118,14 @@ def build_crew() -> Crew:
     #          before me". Compare that with LangGraph, where nothing is
     #          connected until you draw the edge yourself.
     fix_task = Task(
-        description="TODO: give the fix, based on the diagnosis above.",
-        expected_output="TODO: say what 'done' looks like.",
+        description="Based on the diagnosis above, provide a short fix or"
+        " steps the student can take to resolve the error.",
+        expected_output=(
+            "A concise, actionable fix (code change or config step) and a"
+            " one-line verification the student can run to confirm success."
+        ),
         agent=helper,
-        # context=[explain_task],
+        context=[explain_task],
     )
 
     # TODO 5 - assemble one sequential Crew with both tasks.

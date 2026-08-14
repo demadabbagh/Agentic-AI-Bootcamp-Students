@@ -32,13 +32,28 @@ load_dotenv()
 load_dotenv(find_dotenv(usecwd=True))
 
 api_key = os.environ.get("OPENROUTER_API_KEY")
-if not api_key:
+base_url = os.environ.get("OPENROUTER_BASE_URL")
+if not api_key or not base_url:
+    missing = []
+    if not api_key:
+        missing.append("OPENROUTER_API_KEY")
+    if not base_url:
+        missing.append("OPENROUTER_BASE_URL")
     raise RuntimeError(
-        "OPENROUTER_API_KEY not found.\n"
+        f"Missing environment variables: {', '.join(missing)}.\n"
         "Create a file named .env in your project folder containing:\n"
         "    OPENROUTER_API_KEY=sk-or-...\n"
+        "    OPENROUTER_BASE_URL=https://openrouter.ai/api/v1\n"
         "then run this script again."
     )
+
+
+llm = ChatOpenAI(
+    model="openai/gpt-4o-mini",
+    temperature=0,
+    base_url=base_url,
+    api_key=api_key,
+)
 
 
 # Three real errors you will probably meet today.
@@ -79,32 +94,39 @@ class HelperState(TypedDict):
 
 def explain_error(state: HelperState) -> HelperState:
     """Node 1: say what went wrong, in plain language."""
-    # TODO 2 - build a prompt from state["error_text"], call the model,
-    #          store the answer in state["explanation"], and RETURN state.
-    
-    #          Ask for 2-3 sentences, no jargon, and no fix yet - node 2
-    #          does the fix.
-    raise NotImplementedError
+    prompt = (
+        "You are an expert Python debugging assistant. Read the traceback below and "
+        "explain what went wrong in plain language. Use 2-3 sentences, avoid jargon, "
+        "and do not provide the fix yet. Only describe the error and its cause.\n\n"
+        f"Traceback:\n{state['error_text']}"
+    )
+    response = llm.invoke(prompt)
+    state["explanation"] = response.content.strip()
+    return state
 
 
 def suggest_fix(state: HelperState) -> HelperState:
     """Node 2: suggest the fix, based on node 1's explanation."""
-    # TODO 3 - build a prompt from state["explanation"], call the model,
-    #          store the answer in state["fix"], and RETURN state.
-    #
-    #          Pass the EXPLANATION into this prompt, not the raw traceback.
-    #          Ask for the concrete steps to fix it.
-    raise NotImplementedError
+    prompt = (
+        "You are an expert Python debugging assistant. Based only on the explanation "
+        "below, suggest the concrete steps to fix the problem. Do not look at the raw traceback. "
+        "Write clear, actionable instructions.\n\n"
+        f"Explanation:\n{state['explanation']}"
+    )
+    response = llm.invoke(prompt)
+    state["fix"] = response.content.strip()
+    return state
 
 
 def build_graph():
     graph = StateGraph(HelperState)
 
-    # TODO 4 - register both nodes.
-    #          graph.add_node("name", function)
+    graph.add_node("explain_error", explain_error)
+    graph.add_node("suggest_fix", suggest_fix)
 
-    # TODO 5 - set the entry point, then connect:
-    #          explain_error -> suggest_fix -> END
+    graph.set_entry_point("explain_error")
+    graph.add_edge("explain_error", "suggest_fix")
+    graph.add_edge("suggest_fix", END)
 
     return graph.compile()
 
