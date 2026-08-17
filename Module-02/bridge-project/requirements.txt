@@ -1,0 +1,23 @@
+# Module 2 — dependencies TESTED 2 Aug 2026
+#
+# ⚠️ REQUIRES PYTHON 3.12 or 3.13.  Python 3.14 WILL FAIL.
+#    (crewai pulls numpy; no numpy wheel exists for 3.14, so pip tries to
+#     compile it from source and dies looking for a C compiler.)
+#
+# Install:
+#   python -m venv .venv
+#   .\.venv\Scripts\Activate.ps1        # Windows
+#   source .venv/bin/activate           # macOS / Linux
+#   pip install -r requirements.txt
+#
+# Faster alternative (~1 min instead of ~13):
+#   pip install uv
+#   uv venv --python 3.12 --seed .venv
+#   uv pip install -r requirements.txt
+#
+# Verified working together on Python 3.12.13:
+openai==2.52.0
+langgraph==1.2.10
+langchain-openai==1.4.1
+crewai==1.15.10
+python-dotenv==1.2.2
