@@ -1,0 +1,16 @@
+# Module 3 — dependencies
+#
+# Requires Python 3.12 or 3.13.
+# This folder is wired to the Module 2 venv, which already has these:
+#   C:\Users\alahmed\repos\Agentic-AI-Bootcamp-Students\Module-02\.venv
+#
+# To build a fresh one instead:
+#   py -3.12 -m venv .venv
+#   .\.venv\Scripts\Activate.ps1
+#   pip install -r requirements.txt
+
+openai==2.52.0
+langgraph==1.2.10
+langchain-openai==1.4.1
+python-dotenv==1.2.2
+pydantic>=2.13

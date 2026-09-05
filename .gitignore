@@ -26,10 +26,10 @@ promo-assets/
 # the whole block, for a phase) the week it goes live, then
 # commit + push. Module-00 and Module-01 are intentionally NOT
 # listed here, so they stay tracked from day one.
+# Module-03 released 2026-08-29.
+# Module-05 released 2026-09-05.
 # ============================================================
-Module-03/
 Module-04/
-Module-05/
 Module-05B-Agent-Skills/
 Module-06/
 Module-07/
