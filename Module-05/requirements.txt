@@ -1,0 +1,19 @@
+# Module 5 dependencies
+#
+# Install into the SAME environment you used for the earlier modules.
+# On Windows that is usually:
+#     Module-02\.venv\Scripts\python.exe -m pip install -r Module-05\requirements.txt
+#
+# Python 3.12 is known good. Python 3.14 is NOT — several of these have no
+# wheels for it yet and will try to build from source.
+
+mcp>=1.9.0,<2          # the MCP SDK: FastMCP server + ClientSession
+                       #   PIN MATTERS: SDK v2 renamed the wire fields
+                       #   (inputSchema -> input_schema, serverInfo ->
+                       #   server_info). Everything here is written against
+                       #   v1. Remove the <2 and the labs stop running.
+langgraph>=0.2.0        # the agent graph
+langchain-openai>=0.2.0 # the LLM client (points at OpenRouter)
+python-dotenv>=1.0.0    # loads your .env
+pydantic>=2.0.0         # structured output for the Action schema
+httpx>=0.27.0           # only needed if you wire a real search API
