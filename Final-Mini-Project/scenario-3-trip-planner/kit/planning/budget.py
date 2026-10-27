@@ -4,6 +4,7 @@ Two jobs:
   pricing      PriceQuote (a price as the evidence states it) -> price_activity() -> ActivityCost
                (whole party, trip currency), written into an Activity with apply_to_activity()
   summarising  summarize(itinerary) -> BudgetSummary: per-day and trip totals, within / over / undetermined
+               (budget_verdict() is that verdict alone, for costs not in an itinerary yet: the Budget Analyst)
 
 Rules:
   - Decimal for every amount; one rounding step, to cents (ROUND_HALF_UP), at the end of each calculation.
@@ -312,6 +313,32 @@ class DayBudget(BaseModel):
     range_items: list[str]
 
 
+class BudgetVerdict(BaseModel):
+    """The verdict on a set of costs against a budget. Which fields are set depends on the status."""
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    status: BudgetStatus
+    remaining: Decimal | None = None  # only when every cost is known and the plan fits
+    overrun: Decimal | None = None  # only when the known costs already exceed the budget
+    max_remaining: Decimal | None = None  # undetermined: what is left at most, before the unknown costs
+    fits_at_low_estimate: bool | None = None  # over budget with the high ends, but within with the low ends?
+
+
+def budget_verdict(known_total, low_total, has_unknown: bool, budget_total) -> BudgetVerdict:
+    """within / over / undetermined / no_budget for costs already added up (high and low ends of ranges).
+
+    Over budget wins over unknown: known costs above the budget are over, whatever the unknown costs are.
+    """
+    if budget_total is None:
+        return BudgetVerdict(status="no_budget")
+    known, low, budget = money(known_total), money(low_total), money(budget_total)
+    if known > budget:
+        return BudgetVerdict(status="over_budget", overrun=known - budget, fits_at_low_estimate=low <= budget)
+    if has_unknown:
+        return BudgetVerdict(status="undetermined", max_remaining=budget - known)
+    return BudgetVerdict(status="within_budget", remaining=budget - known)
+
+
 class BudgetSummary(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -324,10 +351,10 @@ class BudgetSummary(BaseModel):
     unknown_items: list[str]  # "2026-11-02 Osman Gourmet Restaurant"
     range_items: list[str]
     status: BudgetStatus
-    remaining: Decimal | None = None  # only when every cost is known and the plan fits
-    overrun: Decimal | None = None  # only when the known costs already exceed the budget
-    max_remaining: Decimal | None = None  # undetermined: what is left at most, before the unknown costs
-    fits_at_low_estimate: bool | None = None  # over budget with the high ends, but within with the low ends?
+    remaining: Decimal | None = None  # the BudgetVerdict fields
+    overrun: Decimal | None = None
+    max_remaining: Decimal | None = None
+    fits_at_low_estimate: bool | None = None
 
     @property
     def cost_complete(self) -> bool:
@@ -360,13 +387,7 @@ def summarize(itinerary: Itinerary) -> BudgetSummary:
     known_total = money(sum((x.known_total for x in days), Decimal("0")))
     low_total = money(sum((x.low_total for x in days), Decimal("0")))
     budget = None if itinerary.budget_total is None else money(itinerary.budget_total)
-    out = dict(currency=itinerary.currency, travellers=itinerary.travellers, budget_total=budget, days=days,
-               known_total=known_total, low_total=low_total, unknown_items=unknown, range_items=ranges)
-    if budget is None:
-        return BudgetSummary(status="no_budget", **out)
-    if known_total > budget:
-        return BudgetSummary(status="over_budget", overrun=known_total - budget,
-                             fits_at_low_estimate=low_total <= budget, **out)
-    if unknown:
-        return BudgetSummary(status="undetermined", max_remaining=budget - known_total, **out)
-    return BudgetSummary(status="within_budget", remaining=budget - known_total, **out)
+    verdict = budget_verdict(known_total, low_total, bool(unknown), budget)
+    return BudgetSummary(currency=itinerary.currency, travellers=itinerary.travellers, budget_total=budget,
+                         days=days, known_total=known_total, low_total=low_total, unknown_items=unknown,
+                         range_items=ranges, **verdict.model_dump())
