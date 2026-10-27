@@ -7,7 +7,6 @@ replies and records every prompt it was sent.
 import json
 import os
 from decimal import Decimal
-from typing import Any
 
 os.environ.setdefault("CREWAI_DISABLE_TELEMETRY", "true")
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
@@ -15,7 +14,6 @@ os.environ.setdefault("CREWAI_TRACING_ENABLED", "false")
 os.environ.setdefault("CREWAI_STORAGE_DIR", "trip-planner-tests")  # keep CrewAI's local files away from real runs
 
 import pytest
-from crewai.llms.base_llm import BaseLLM
 
 from planning.budget import summarize
 from planning.budget_analyst import (AGENT_BACKSTORY, TASK_DESCRIPTION, BudgetAnalystError, BudgetDecision,
@@ -27,6 +25,7 @@ from planning.budget_analyst import (AGENT_BACKSTORY, TASK_DESCRIPTION, BudgetAn
 from planning.models import DayPlan, Itinerary
 from planning.research import ResearchBundle
 from research_fixtures import bundle, listing, raw
+from scripted_llm import NativeScriptedLLM, ScriptedLLM, by_role, native_tool_call, text
 
 
 def I(slug):  # noqa: E743 - a place id of the Istanbul fixture
@@ -408,30 +407,6 @@ def test_guardrail_reads_raw_text_and_rejects_or_accepts():
 
 
 # ------------------------------------------------------------------ the CrewAI agent and task, offline
-class ScriptedLLM(BaseLLM):
-    """Replays fixed replies and records every prompt: the real CrewAI agent loop, no network, no cost."""
-    replies: list[Any] = []  # text answers, or a list of native tool calls
-    prompts: list[Any] = []
-
-    def call(self, messages, tools=None, callbacks=None, available_functions=None, from_task=None,
-             from_agent=None, response_model=None):
-        self.prompts.append(list(messages) if isinstance(messages, list) else messages)  # a snapshot: CrewAI
-        if not self.replies:                                                             # keeps appending
-            raise RuntimeError("ScriptedLLM has no reply left")
-        return self.replies.pop(0)
-
-    def supports_function_calling(self) -> bool:
-        return False  # the ReAct text protocol: Action / Action Input / Final Answer
-
-
-def text(messages) -> str:
-    return messages if isinstance(messages, str) else "\n".join(str(m.get("content")) for m in messages)
-
-
-def by_role(messages, role) -> str:
-    return "\n".join(str(m.get("content")) for m in messages if m.get("role") == role)
-
-
 def action(place_ids) -> str:
     return f'Thought: I check the budget in Python.\nAction: check_selection\nAction Input: {json.dumps({"place_ids": place_ids})}'
 
@@ -512,15 +487,8 @@ def test_instructions_and_research_data_are_kept_apart_in_the_prompt():
     assert SYNTHETIC not in user
 
 
-class NativeScriptedLLM(ScriptedLLM):
-    """Like the live OpenRouter run: native function calling (a tool call comes back as a list of calls)."""
-    def supports_function_calling(self) -> bool:
-        return True
-
-
 def native_call(place_ids) -> list[dict]:
-    return [{"id": "call_1", "type": "function",
-             "function": {"name": "check_selection", "arguments": json.dumps({"place_ids": place_ids})}}]
+    return native_tool_call("check_selection", {"place_ids": place_ids})
 
 
 def test_native_tool_call_is_executed_and_leaves_evidence():
