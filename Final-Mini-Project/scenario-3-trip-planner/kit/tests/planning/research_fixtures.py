@@ -26,6 +26,24 @@ def listing(name: str, place_id: str) -> dict:
     raise KeyError(place_id)
 
 
+def routes(name: str = "istanbul") -> dict:
+    """Recorded travel_time results, 'from|to' -> the MCP result (tests/fixtures/<name>_routes.json)."""
+    return json.loads((FIXTURES / f"{name}_routes.json").read_text(encoding="utf-8"))["results"]
+
+
+def recorded_lookup(name: str = "istanbul", asked: list | None = None):
+    """A TravelLookup that replays the recorded results. A pair that was never recorded answers like a tool
+    error, so a test can never pass on an invented route. `asked` collects the pairs requested."""
+    results = routes(name)
+
+    def lookup(from_place: str, to_place: str) -> dict:
+        if asked is not None:
+            asked.append((from_place, to_place))
+        return copy.deepcopy(results.get(f"{from_place}|{to_place}") or
+                             {"ok": False, "error": {"code": "not_recorded", "message": "not in the fixture"}})
+    return lookup
+
+
 def bundle(name: str = "istanbul", *, drop_fx: tuple = (), extra_attractions: list | None = None,
            **trip) -> ResearchBundle:
     """The fixture as a ResearchBundle. trip=... overrides the mock request; drop_fx removes rates by source currency."""

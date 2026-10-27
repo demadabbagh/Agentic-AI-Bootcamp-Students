@@ -1,0 +1,1087 @@
+{
+ "_about": "travel_time(mode='foot') results recorded from the kit's replay cache (OpenStreetMap OSRM data) in the MCP envelope, for every ordered pair of non-synthetic places in amman_research.json. Keys are 'from_place|to_place' with the listing names the planner sends. Failures (not_cached) are recorded as the tool returns them.",
+ "city": "Amman",
+ "mode": "foot",
+ "results": {
+  "Amman Citadel|Roman Theater": {
+   "ok": true,
+   "from": {
+    "name": "Amman Citadel",
+    "id": "wv-amman-amman-citadel",
+    "lat": 31.9547,
+    "lon": 35.9343,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Roman Theater",
+    "id": "wv-amman-roman-theater",
+    "lat": 31.951693,
+    "lon": 35.939305,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 1150,
+   "duration_s": 920,
+   "duration_min": 15,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93430,31.95470;35.93930,31.95169?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-amman-citadel-roman-theater",
+    "title": "foot time Amman Citadel -> Roman Theater (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93430,31.95470;35.93930,31.95169?overview=false"
+   }
+  },
+  "Amman Citadel|The Jordan Museum": {
+   "ok": true,
+   "from": {
+    "name": "Amman Citadel",
+    "id": "wv-amman-amman-citadel",
+    "lat": 31.9547,
+    "lon": 35.9343,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "The Jordan Museum",
+    "id": "wv-amman-the-jordan-museum",
+    "lat": 31.945834,
+    "lon": 35.927341,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 2936,
+   "duration_s": 2350,
+   "duration_min": 39,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93430,31.95470;35.92734,31.94583?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-amman-citadel-the-jordan-museum",
+    "title": "foot time Amman Citadel -> The Jordan Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93430,31.95470;35.92734,31.94583?overview=false"
+   }
+  },
+  "Amman Citadel|Gilgamesh for Creative Arts": {
+   "ok": true,
+   "from": {
+    "name": "Amman Citadel",
+    "id": "wv-amman-amman-citadel",
+    "lat": 31.9547,
+    "lon": 35.9343,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Gilgamesh for Creative Arts",
+    "id": "wv-amman-gilgamesh-for-creative-arts",
+    "lat": 31.9573,
+    "lon": 35.9254,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#Do"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 1872,
+   "duration_s": 1501,
+   "duration_min": 25,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93430,31.95470;35.92540,31.95730?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-amman-citadel-gilgamesh-for-creative-arts",
+    "title": "foot time Amman Citadel -> Gilgamesh for Creative Arts (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93430,31.95470;35.92540,31.95730?overview=false"
+   }
+  },
+  "Amman Citadel|Cave of the Seven Sleepers": {
+   "ok": true,
+   "from": {
+    "name": "Amman Citadel",
+    "id": "wv-amman-amman-citadel",
+    "lat": 31.9547,
+    "lon": 35.9343,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Cave of the Seven Sleepers",
+    "id": "wv-amman-cave-of-the-seven-sleepers",
+    "lat": 31.8989,
+    "lon": 35.9738,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 9832,
+   "duration_s": 7866,
+   "duration_min": 131,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93430,31.95470;35.97380,31.89890?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-amman-citadel-cave-of-the-seven-sleepers",
+    "title": "foot time Amman Citadel -> Cave of the Seven Sleepers (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93430,31.95470;35.97380,31.89890?overview=false"
+   }
+  },
+  "Amman Citadel|Jordan Archaeological Museum": {
+   "ok": true,
+   "from": {
+    "name": "Amman Citadel",
+    "id": "wv-amman-amman-citadel",
+    "lat": 31.9547,
+    "lon": 35.9343,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Jordan Archaeological Museum",
+    "id": "wv-amman-jordan-archaeological-museum",
+    "lat": 31.954185,
+    "lon": 35.934279,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 136,
+   "duration_s": 109,
+   "duration_min": 2,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93430,31.95470;35.93428,31.95418?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-amman-citadel-jordan-archaeological-museum",
+    "title": "foot time Amman Citadel -> Jordan Archaeological Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93430,31.95470;35.93428,31.95418?overview=false"
+   }
+  },
+  "Roman Theater|Amman Citadel": {
+   "ok": true,
+   "from": {
+    "name": "Roman Theater",
+    "id": "wv-amman-roman-theater",
+    "lat": 31.951693,
+    "lon": 35.939305,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Amman Citadel",
+    "id": "wv-amman-amman-citadel",
+    "lat": 31.9547,
+    "lon": 35.9343,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 1150,
+   "duration_s": 920,
+   "duration_min": 15,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93930,31.95169;35.93430,31.95470?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-roman-theater-amman-citadel",
+    "title": "foot time Roman Theater -> Amman Citadel (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93930,31.95169;35.93430,31.95470?overview=false"
+   }
+  },
+  "Roman Theater|The Jordan Museum": {
+   "ok": true,
+   "from": {
+    "name": "Roman Theater",
+    "id": "wv-amman-roman-theater",
+    "lat": 31.951693,
+    "lon": 35.939305,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "The Jordan Museum",
+    "id": "wv-amman-the-jordan-museum",
+    "lat": 31.945834,
+    "lon": 35.927341,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 2013,
+   "duration_s": 1611,
+   "duration_min": 27,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93930,31.95169;35.92734,31.94583?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-roman-theater-the-jordan-museum",
+    "title": "foot time Roman Theater -> The Jordan Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93930,31.95169;35.92734,31.94583?overview=false"
+   }
+  },
+  "Roman Theater|Gilgamesh for Creative Arts": {
+   "ok": true,
+   "from": {
+    "name": "Roman Theater",
+    "id": "wv-amman-roman-theater",
+    "lat": 31.951693,
+    "lon": 35.939305,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Gilgamesh for Creative Arts",
+    "id": "wv-amman-gilgamesh-for-creative-arts",
+    "lat": 31.9573,
+    "lon": 35.9254,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#Do"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 1892,
+   "duration_s": 1513,
+   "duration_min": 25,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93930,31.95169;35.92540,31.95730?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-roman-theater-gilgamesh-for-creative-arts",
+    "title": "foot time Roman Theater -> Gilgamesh for Creative Arts (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93930,31.95169;35.92540,31.95730?overview=false"
+   }
+  },
+  "Roman Theater|Cave of the Seven Sleepers": {
+   "ok": true,
+   "from": {
+    "name": "Roman Theater",
+    "id": "wv-amman-roman-theater",
+    "lat": 31.951693,
+    "lon": 35.939305,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Cave of the Seven Sleepers",
+    "id": "wv-amman-cave-of-the-seven-sleepers",
+    "lat": 31.8989,
+    "lon": 35.9738,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 8909,
+   "duration_s": 7128,
+   "duration_min": 119,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93930,31.95169;35.97380,31.89890?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-roman-theater-cave-of-the-seven-sleepers",
+    "title": "foot time Roman Theater -> Cave of the Seven Sleepers (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93930,31.95169;35.97380,31.89890?overview=false"
+   }
+  },
+  "Roman Theater|Jordan Archaeological Museum": {
+   "ok": true,
+   "from": {
+    "name": "Roman Theater",
+    "id": "wv-amman-roman-theater",
+    "lat": 31.951693,
+    "lon": 35.939305,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Jordan Archaeological Museum",
+    "id": "wv-amman-jordan-archaeological-museum",
+    "lat": 31.954185,
+    "lon": 35.934279,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 1075,
+   "duration_s": 860,
+   "duration_min": 14,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93930,31.95169;35.93428,31.95418?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-roman-theater-jordan-archaeological-museum",
+    "title": "foot time Roman Theater -> Jordan Archaeological Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93930,31.95169;35.93428,31.95418?overview=false"
+   }
+  },
+  "The Jordan Museum|Amman Citadel": {
+   "ok": true,
+   "from": {
+    "name": "The Jordan Museum",
+    "id": "wv-amman-the-jordan-museum",
+    "lat": 31.945834,
+    "lon": 35.927341,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Amman Citadel",
+    "id": "wv-amman-amman-citadel",
+    "lat": 31.9547,
+    "lon": 35.9343,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 2936,
+   "duration_s": 2350,
+   "duration_min": 39,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92734,31.94583;35.93430,31.95470?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-the-jordan-museum-amman-citadel",
+    "title": "foot time The Jordan Museum -> Amman Citadel (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92734,31.94583;35.93430,31.95470?overview=false"
+   }
+  },
+  "The Jordan Museum|Roman Theater": {
+   "ok": true,
+   "from": {
+    "name": "The Jordan Museum",
+    "id": "wv-amman-the-jordan-museum",
+    "lat": 31.945834,
+    "lon": 35.927341,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Roman Theater",
+    "id": "wv-amman-roman-theater",
+    "lat": 31.951693,
+    "lon": 35.939305,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 2013,
+   "duration_s": 1611,
+   "duration_min": 27,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92734,31.94583;35.93930,31.95169?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-the-jordan-museum-roman-theater",
+    "title": "foot time The Jordan Museum -> Roman Theater (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92734,31.94583;35.93930,31.95169?overview=false"
+   }
+  },
+  "The Jordan Museum|Gilgamesh for Creative Arts": {
+   "ok": true,
+   "from": {
+    "name": "The Jordan Museum",
+    "id": "wv-amman-the-jordan-museum",
+    "lat": 31.945834,
+    "lon": 35.927341,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Gilgamesh for Creative Arts",
+    "id": "wv-amman-gilgamesh-for-creative-arts",
+    "lat": 31.9573,
+    "lon": 35.9254,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#Do"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 2325,
+   "duration_s": 1860,
+   "duration_min": 31,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92734,31.94583;35.92540,31.95730?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-the-jordan-museum-gilgamesh-for-creative-arts",
+    "title": "foot time The Jordan Museum -> Gilgamesh for Creative Arts (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92734,31.94583;35.92540,31.95730?overview=false"
+   }
+  },
+  "The Jordan Museum|Cave of the Seven Sleepers": {
+   "ok": true,
+   "from": {
+    "name": "The Jordan Museum",
+    "id": "wv-amman-the-jordan-museum",
+    "lat": 31.945834,
+    "lon": 35.927341,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Cave of the Seven Sleepers",
+    "id": "wv-amman-cave-of-the-seven-sleepers",
+    "lat": 31.8989,
+    "lon": 35.9738,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 8640,
+   "duration_s": 6913,
+   "duration_min": 115,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92734,31.94583;35.97380,31.89890?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-the-jordan-museum-cave-of-the-seven-sleepers",
+    "title": "foot time The Jordan Museum -> Cave of the Seven Sleepers (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92734,31.94583;35.97380,31.89890?overview=false"
+   }
+  },
+  "The Jordan Museum|Jordan Archaeological Museum": {
+   "ok": true,
+   "from": {
+    "name": "The Jordan Museum",
+    "id": "wv-amman-the-jordan-museum",
+    "lat": 31.945834,
+    "lon": 35.927341,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Jordan Archaeological Museum",
+    "id": "wv-amman-jordan-archaeological-museum",
+    "lat": 31.954185,
+    "lon": 35.934279,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 2862,
+   "duration_s": 2289,
+   "duration_min": 38,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92734,31.94583;35.93428,31.95418?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-the-jordan-museum-jordan-archaeological-museum",
+    "title": "foot time The Jordan Museum -> Jordan Archaeological Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92734,31.94583;35.93428,31.95418?overview=false"
+   }
+  },
+  "Gilgamesh for Creative Arts|Amman Citadel": {
+   "ok": true,
+   "from": {
+    "name": "Gilgamesh for Creative Arts",
+    "id": "wv-amman-gilgamesh-for-creative-arts",
+    "lat": 31.9573,
+    "lon": 35.9254,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#Do"
+   },
+   "to": {
+    "name": "Amman Citadel",
+    "id": "wv-amman-amman-citadel",
+    "lat": 31.9547,
+    "lon": 35.9343,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 1872,
+   "duration_s": 1501,
+   "duration_min": 25,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92540,31.95730;35.93430,31.95470?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-gilgamesh-for-creative-arts-amman-citadel",
+    "title": "foot time Gilgamesh for Creative Arts -> Amman Citadel (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92540,31.95730;35.93430,31.95470?overview=false"
+   }
+  },
+  "Gilgamesh for Creative Arts|Roman Theater": {
+   "ok": true,
+   "from": {
+    "name": "Gilgamesh for Creative Arts",
+    "id": "wv-amman-gilgamesh-for-creative-arts",
+    "lat": 31.9573,
+    "lon": 35.9254,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#Do"
+   },
+   "to": {
+    "name": "Roman Theater",
+    "id": "wv-amman-roman-theater",
+    "lat": 31.951693,
+    "lon": 35.939305,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 1892,
+   "duration_s": 1513,
+   "duration_min": 25,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92540,31.95730;35.93930,31.95169?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-gilgamesh-for-creative-arts-roman-theater",
+    "title": "foot time Gilgamesh for Creative Arts -> Roman Theater (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92540,31.95730;35.93930,31.95169?overview=false"
+   }
+  },
+  "Gilgamesh for Creative Arts|The Jordan Museum": {
+   "ok": true,
+   "from": {
+    "name": "Gilgamesh for Creative Arts",
+    "id": "wv-amman-gilgamesh-for-creative-arts",
+    "lat": 31.9573,
+    "lon": 35.9254,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#Do"
+   },
+   "to": {
+    "name": "The Jordan Museum",
+    "id": "wv-amman-the-jordan-museum",
+    "lat": 31.945834,
+    "lon": 35.927341,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 2325,
+   "duration_s": 1860,
+   "duration_min": 31,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92540,31.95730;35.92734,31.94583?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-gilgamesh-for-creative-arts-the-jordan-museum",
+    "title": "foot time Gilgamesh for Creative Arts -> The Jordan Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92540,31.95730;35.92734,31.94583?overview=false"
+   }
+  },
+  "Gilgamesh for Creative Arts|Cave of the Seven Sleepers": {
+   "ok": true,
+   "from": {
+    "name": "Gilgamesh for Creative Arts",
+    "id": "wv-amman-gilgamesh-for-creative-arts",
+    "lat": 31.9573,
+    "lon": 35.9254,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#Do"
+   },
+   "to": {
+    "name": "Cave of the Seven Sleepers",
+    "id": "wv-amman-cave-of-the-seven-sleepers",
+    "lat": 31.8989,
+    "lon": 35.9738,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 9742,
+   "duration_s": 7796,
+   "duration_min": 130,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92540,31.95730;35.97380,31.89890?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-gilgamesh-for-creative-arts-cave-of-the-seven-sleepers",
+    "title": "foot time Gilgamesh for Creative Arts -> Cave of the Seven Sleepers (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92540,31.95730;35.97380,31.89890?overview=false"
+   }
+  },
+  "Gilgamesh for Creative Arts|Jordan Archaeological Museum": {
+   "ok": true,
+   "from": {
+    "name": "Gilgamesh for Creative Arts",
+    "id": "wv-amman-gilgamesh-for-creative-arts",
+    "lat": 31.9573,
+    "lon": 35.9254,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#Do"
+   },
+   "to": {
+    "name": "Jordan Archaeological Museum",
+    "id": "wv-amman-jordan-archaeological-museum",
+    "lat": 31.954185,
+    "lon": 35.934279,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 1797,
+   "duration_s": 1441,
+   "duration_min": 24,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92540,31.95730;35.93428,31.95418?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-gilgamesh-for-creative-arts-jordan-archaeological-museum",
+    "title": "foot time Gilgamesh for Creative Arts -> Jordan Archaeological Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.92540,31.95730;35.93428,31.95418?overview=false"
+   }
+  },
+  "Cave of the Seven Sleepers|Amman Citadel": {
+   "ok": true,
+   "from": {
+    "name": "Cave of the Seven Sleepers",
+    "id": "wv-amman-cave-of-the-seven-sleepers",
+    "lat": 31.8989,
+    "lon": 35.9738,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Amman Citadel",
+    "id": "wv-amman-amman-citadel",
+    "lat": 31.9547,
+    "lon": 35.9343,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 9832,
+   "duration_s": 7866,
+   "duration_min": 131,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.97380,31.89890;35.93430,31.95470?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-cave-of-the-seven-sleepers-amman-citadel",
+    "title": "foot time Cave of the Seven Sleepers -> Amman Citadel (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.97380,31.89890;35.93430,31.95470?overview=false"
+   }
+  },
+  "Cave of the Seven Sleepers|Roman Theater": {
+   "ok": true,
+   "from": {
+    "name": "Cave of the Seven Sleepers",
+    "id": "wv-amman-cave-of-the-seven-sleepers",
+    "lat": 31.8989,
+    "lon": 35.9738,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Roman Theater",
+    "id": "wv-amman-roman-theater",
+    "lat": 31.951693,
+    "lon": 35.939305,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 8909,
+   "duration_s": 7128,
+   "duration_min": 119,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.97380,31.89890;35.93930,31.95169?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-cave-of-the-seven-sleepers-roman-theater",
+    "title": "foot time Cave of the Seven Sleepers -> Roman Theater (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.97380,31.89890;35.93930,31.95169?overview=false"
+   }
+  },
+  "Cave of the Seven Sleepers|The Jordan Museum": {
+   "ok": true,
+   "from": {
+    "name": "Cave of the Seven Sleepers",
+    "id": "wv-amman-cave-of-the-seven-sleepers",
+    "lat": 31.8989,
+    "lon": 35.9738,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "The Jordan Museum",
+    "id": "wv-amman-the-jordan-museum",
+    "lat": 31.945834,
+    "lon": 35.927341,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 8640,
+   "duration_s": 6913,
+   "duration_min": 115,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.97380,31.89890;35.92734,31.94583?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-cave-of-the-seven-sleepers-the-jordan-museum",
+    "title": "foot time Cave of the Seven Sleepers -> The Jordan Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.97380,31.89890;35.92734,31.94583?overview=false"
+   }
+  },
+  "Cave of the Seven Sleepers|Gilgamesh for Creative Arts": {
+   "ok": true,
+   "from": {
+    "name": "Cave of the Seven Sleepers",
+    "id": "wv-amman-cave-of-the-seven-sleepers",
+    "lat": 31.8989,
+    "lon": 35.9738,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Gilgamesh for Creative Arts",
+    "id": "wv-amman-gilgamesh-for-creative-arts",
+    "lat": 31.9573,
+    "lon": 35.9254,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#Do"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 9742,
+   "duration_s": 7796,
+   "duration_min": 130,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.97380,31.89890;35.92540,31.95730?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-cave-of-the-seven-sleepers-gilgamesh-for-creative-arts",
+    "title": "foot time Cave of the Seven Sleepers -> Gilgamesh for Creative Arts (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.97380,31.89890;35.92540,31.95730?overview=false"
+   }
+  },
+  "Cave of the Seven Sleepers|Jordan Archaeological Museum": {
+   "ok": true,
+   "from": {
+    "name": "Cave of the Seven Sleepers",
+    "id": "wv-amman-cave-of-the-seven-sleepers",
+    "lat": 31.8989,
+    "lon": 35.9738,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Jordan Archaeological Museum",
+    "id": "wv-amman-jordan-archaeological-museum",
+    "lat": 31.954185,
+    "lon": 35.934279,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 9757,
+   "duration_s": 7806,
+   "duration_min": 130,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.97380,31.89890;35.93428,31.95418?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-cave-of-the-seven-sleepers-jordan-archaeological-museum",
+    "title": "foot time Cave of the Seven Sleepers -> Jordan Archaeological Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.97380,31.89890;35.93428,31.95418?overview=false"
+   }
+  },
+  "Jordan Archaeological Museum|Amman Citadel": {
+   "ok": true,
+   "from": {
+    "name": "Jordan Archaeological Museum",
+    "id": "wv-amman-jordan-archaeological-museum",
+    "lat": 31.954185,
+    "lon": 35.934279,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Amman Citadel",
+    "id": "wv-amman-amman-citadel",
+    "lat": 31.9547,
+    "lon": 35.9343,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 136,
+   "duration_s": 109,
+   "duration_min": 2,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93428,31.95418;35.93430,31.95470?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-jordan-archaeological-museum-amman-citadel",
+    "title": "foot time Jordan Archaeological Museum -> Amman Citadel (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93428,31.95418;35.93430,31.95470?overview=false"
+   }
+  },
+  "Jordan Archaeological Museum|Roman Theater": {
+   "ok": true,
+   "from": {
+    "name": "Jordan Archaeological Museum",
+    "id": "wv-amman-jordan-archaeological-museum",
+    "lat": 31.954185,
+    "lon": 35.934279,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Roman Theater",
+    "id": "wv-amman-roman-theater",
+    "lat": 31.951693,
+    "lon": 35.939305,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 1075,
+   "duration_s": 860,
+   "duration_min": 14,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93428,31.95418;35.93930,31.95169?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-jordan-archaeological-museum-roman-theater",
+    "title": "foot time Jordan Archaeological Museum -> Roman Theater (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93428,31.95418;35.93930,31.95169?overview=false"
+   }
+  },
+  "Jordan Archaeological Museum|The Jordan Museum": {
+   "ok": true,
+   "from": {
+    "name": "Jordan Archaeological Museum",
+    "id": "wv-amman-jordan-archaeological-museum",
+    "lat": 31.954185,
+    "lon": 35.934279,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "The Jordan Museum",
+    "id": "wv-amman-the-jordan-museum",
+    "lat": 31.945834,
+    "lon": 35.927341,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 2862,
+   "duration_s": 2289,
+   "duration_min": 38,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93428,31.95418;35.92734,31.94583?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-jordan-archaeological-museum-the-jordan-museum",
+    "title": "foot time Jordan Archaeological Museum -> The Jordan Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93428,31.95418;35.92734,31.94583?overview=false"
+   }
+  },
+  "Jordan Archaeological Museum|Gilgamesh for Creative Arts": {
+   "ok": true,
+   "from": {
+    "name": "Jordan Archaeological Museum",
+    "id": "wv-amman-jordan-archaeological-museum",
+    "lat": 31.954185,
+    "lon": 35.934279,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Gilgamesh for Creative Arts",
+    "id": "wv-amman-gilgamesh-for-creative-arts",
+    "lat": 31.9573,
+    "lon": 35.9254,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#Do"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 1797,
+   "duration_s": 1441,
+   "duration_min": 24,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93428,31.95418;35.92540,31.95730?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-jordan-archaeological-museum-gilgamesh-for-creative-arts",
+    "title": "foot time Jordan Archaeological Museum -> Gilgamesh for Creative Arts (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93428,31.95418;35.92540,31.95730?overview=false"
+   }
+  },
+  "Jordan Archaeological Museum|Cave of the Seven Sleepers": {
+   "ok": true,
+   "from": {
+    "name": "Jordan Archaeological Museum",
+    "id": "wv-amman-jordan-archaeological-museum",
+    "lat": 31.954185,
+    "lon": 35.934279,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "to": {
+    "name": "Cave of the Seven Sleepers",
+    "id": "wv-amman-cave-of-the-seven-sleepers",
+    "lat": 31.8989,
+    "lon": 35.9738,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Amman#See"
+   },
+   "city": "Amman",
+   "profile": "foot",
+   "distance_m": 9757,
+   "duration_s": 7806,
+   "duration_min": 130,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93428,31.95418;35.97380,31.89890?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:27:09Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-jordan-archaeological-museum-cave-of-the-seven-sleepers",
+    "title": "foot time Jordan Archaeological Museum -> Cave of the Seven Sleepers (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/35.93428,31.95418;35.97380,31.89890?overview=false"
+   }
+  }
+ }
+}

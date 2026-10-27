@@ -1,0 +1,3427 @@
+{
+ "_about": "travel_time(mode='foot') results recorded from the kit's replay cache (OpenStreetMap OSRM data) in the MCP envelope, for every ordered pair of non-synthetic places in istanbul_research.json. Keys are 'from_place|to_place' with the listing names the planner sends. Failures (not_cached) are recorded as the tool returns them.",
+ "city": "Istanbul",
+ "mode": "foot",
+ "results": {
+  "Hagia Sophia|Topkapı Palace": {
+   "ok": true,
+   "from": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1140,
+   "duration_s": 912,
+   "duration_min": 15,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.98400,41.01300?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hagia-sophia-topkapi-palace",
+    "title": "foot time Hagia Sophia -> Topkapı Palace (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.98400,41.01300?overview=false"
+   }
+  },
+  "Hagia Sophia|Basilica Cistern": {
+   "ok": true,
+   "from": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 209,
+   "duration_s": 167,
+   "duration_min": 3,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.97780,41.00810?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hagia-sophia-basilica-cistern",
+    "title": "foot time Hagia Sophia -> Basilica Cistern (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.97780,41.00810?overview=false"
+   }
+  },
+  "Hagia Sophia|Galata Tower": {
+   "ok": true,
+   "from": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2622,
+   "duration_s": 2100,
+   "duration_min": 35,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.97417,41.02556?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hagia-sophia-galata-tower",
+    "title": "foot time Hagia Sophia -> Galata Tower (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.97417,41.02556?overview=false"
+   }
+  },
+  "Hagia Sophia|Süleymaniye Mosque": {
+   "ok": true,
+   "from": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2059,
+   "duration_s": 1648,
+   "duration_min": 27,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.96390,41.01610?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hagia-sophia-suleymaniye-mosque",
+    "title": "foot time Hagia Sophia -> Süleymaniye Mosque (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.96390,41.01610?overview=false"
+   }
+  },
+  "Hagia Sophia|Grand Bazaar": {
+   "ok": true,
+   "from": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1150,
+   "duration_s": 922,
+   "duration_min": 15,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.96850,41.01060?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hagia-sophia-grand-bazaar",
+    "title": "foot time Hagia Sophia -> Grand Bazaar (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.96850,41.01060?overview=false"
+   }
+  },
+  "Hagia Sophia|Dolmabahce Palace": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Hagia Sophia' to 'Dolmabahce Palace' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Hagia Sophia|Pera Museum": {
+   "ok": true,
+   "from": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 3367,
+   "duration_s": 2696,
+   "duration_min": 45,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.97514,41.03183?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hagia-sophia-pera-museum",
+    "title": "foot time Hagia Sophia -> Pera Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.97514,41.03183?overview=false"
+   }
+  },
+  "Hagia Sophia|Hürrem Sultan Hamamı": {
+   "ok": true,
+   "from": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 250,
+   "duration_s": 200,
+   "duration_min": 3,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.97910,41.00730?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hagia-sophia-hurrem-sultan-hamami",
+    "title": "foot time Hagia Sophia -> Hürrem Sultan Hamamı (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.97910,41.00730?overview=false"
+   }
+  },
+  "Hagia Sophia|Osman Gourmet Restaurant": {
+   "ok": true,
+   "from": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 768,
+   "duration_s": 614,
+   "duration_min": 10,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.97313,41.00629?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hagia-sophia-osman-gourmet-restaurant",
+    "title": "foot time Hagia Sophia -> Osman Gourmet Restaurant (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.97313,41.00629?overview=false"
+   }
+  },
+  "Hagia Sophia|Ali Usta Çiğ Köfte": {
+   "ok": true,
+   "from": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1085,
+   "duration_s": 868,
+   "duration_min": 14,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.97512,41.01473?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hagia-sophia-ali-usta-cig-kofte",
+    "title": "foot time Hagia Sophia -> Ali Usta Çiğ Köfte (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97990,41.00850;28.97512,41.01473?overview=false"
+   }
+  },
+  "Topkapı Palace|Hagia Sophia": {
+   "ok": true,
+   "from": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1140,
+   "duration_s": 912,
+   "duration_min": 15,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.97990,41.00850?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-topkapi-palace-hagia-sophia",
+    "title": "foot time Topkapı Palace -> Hagia Sophia (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.97990,41.00850?overview=false"
+   }
+  },
+  "Topkapı Palace|Basilica Cistern": {
+   "ok": true,
+   "from": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1053,
+   "duration_s": 842,
+   "duration_min": 14,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.97780,41.00810?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-topkapi-palace-basilica-cistern",
+    "title": "foot time Topkapı Palace -> Basilica Cistern (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.97780,41.00810?overview=false"
+   }
+  },
+  "Topkapı Palace|Galata Tower": {
+   "ok": true,
+   "from": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2952,
+   "duration_s": 2364,
+   "duration_min": 39,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.97417,41.02556?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-topkapi-palace-galata-tower",
+    "title": "foot time Topkapı Palace -> Galata Tower (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.97417,41.02556?overview=false"
+   }
+  },
+  "Topkapı Palace|Süleymaniye Mosque": {
+   "ok": true,
+   "from": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2389,
+   "duration_s": 1911,
+   "duration_min": 32,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.96390,41.01610?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-topkapi-palace-suleymaniye-mosque",
+    "title": "foot time Topkapı Palace -> Süleymaniye Mosque (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.96390,41.01610?overview=false"
+   }
+  },
+  "Topkapı Palace|Grand Bazaar": {
+   "ok": true,
+   "from": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1756,
+   "duration_s": 1405,
+   "duration_min": 23,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.96850,41.01060?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-topkapi-palace-grand-bazaar",
+    "title": "foot time Topkapı Palace -> Grand Bazaar (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.96850,41.01060?overview=false"
+   }
+  },
+  "Topkapı Palace|Dolmabahce Palace": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Topkapı Palace' to 'Dolmabahce Palace' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Topkapı Palace|Pera Museum": {
+   "ok": true,
+   "from": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 3697,
+   "duration_s": 2960,
+   "duration_min": 49,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.97514,41.03183?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-topkapi-palace-pera-museum",
+    "title": "foot time Topkapı Palace -> Pera Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.97514,41.03183?overview=false"
+   }
+  },
+  "Topkapı Palace|Hürrem Sultan Hamamı": {
+   "ok": true,
+   "from": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 987,
+   "duration_s": 790,
+   "duration_min": 13,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.97910,41.00730?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-topkapi-palace-hurrem-sultan-hamami",
+    "title": "foot time Topkapı Palace -> Hürrem Sultan Hamamı (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.97910,41.00730?overview=false"
+   }
+  },
+  "Topkapı Palace|Osman Gourmet Restaurant": {
+   "ok": true,
+   "from": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1612,
+   "duration_s": 1290,
+   "duration_min": 22,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.97313,41.00629?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-topkapi-palace-osman-gourmet-restaurant",
+    "title": "foot time Topkapı Palace -> Osman Gourmet Restaurant (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.97313,41.00629?overview=false"
+   }
+  },
+  "Topkapı Palace|Ali Usta Çiğ Köfte": {
+   "ok": true,
+   "from": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1415,
+   "duration_s": 1132,
+   "duration_min": 19,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.97512,41.01473?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-topkapi-palace-ali-usta-cig-kofte",
+    "title": "foot time Topkapı Palace -> Ali Usta Çiğ Köfte (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.98400,41.01300;28.97512,41.01473?overview=false"
+   }
+  },
+  "Basilica Cistern|Hagia Sophia": {
+   "ok": true,
+   "from": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 209,
+   "duration_s": 167,
+   "duration_min": 3,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.97990,41.00850?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-basilica-cistern-hagia-sophia",
+    "title": "foot time Basilica Cistern -> Hagia Sophia (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.97990,41.00850?overview=false"
+   }
+  },
+  "Basilica Cistern|Topkapı Palace": {
+   "ok": true,
+   "from": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1053,
+   "duration_s": 842,
+   "duration_min": 14,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.98400,41.01300?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-basilica-cistern-topkapi-palace",
+    "title": "foot time Basilica Cistern -> Topkapı Palace (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.98400,41.01300?overview=false"
+   }
+  },
+  "Basilica Cistern|Galata Tower": {
+   "ok": true,
+   "from": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2543,
+   "duration_s": 2036,
+   "duration_min": 34,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.97417,41.02556?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-basilica-cistern-galata-tower",
+    "title": "foot time Basilica Cistern -> Galata Tower (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.97417,41.02556?overview=false"
+   }
+  },
+  "Basilica Cistern|Süleymaniye Mosque": {
+   "ok": true,
+   "from": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1904,
+   "duration_s": 1526,
+   "duration_min": 25,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.96390,41.01610?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-basilica-cistern-suleymaniye-mosque",
+    "title": "foot time Basilica Cistern -> Süleymaniye Mosque (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.96390,41.01610?overview=false"
+   }
+  },
+  "Basilica Cistern|Grand Bazaar": {
+   "ok": true,
+   "from": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 942,
+   "duration_s": 755,
+   "duration_min": 13,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.96850,41.01060?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-basilica-cistern-grand-bazaar",
+    "title": "foot time Basilica Cistern -> Grand Bazaar (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.96850,41.01060?overview=false"
+   }
+  },
+  "Basilica Cistern|Dolmabahce Palace": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Basilica Cistern' to 'Dolmabahce Palace' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Basilica Cistern|Pera Museum": {
+   "ok": true,
+   "from": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 3288,
+   "duration_s": 2632,
+   "duration_min": 44,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.97514,41.03183?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-basilica-cistern-pera-museum",
+    "title": "foot time Basilica Cistern -> Pera Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.97514,41.03183?overview=false"
+   }
+  },
+  "Basilica Cistern|Hürrem Sultan Hamamı": {
+   "ok": true,
+   "from": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 210,
+   "duration_s": 170,
+   "duration_min": 3,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.97910,41.00730?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-basilica-cistern-hurrem-sultan-hamami",
+    "title": "foot time Basilica Cistern -> Hürrem Sultan Hamamı (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.97910,41.00730?overview=false"
+   }
+  },
+  "Basilica Cistern|Osman Gourmet Restaurant": {
+   "ok": true,
+   "from": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 569,
+   "duration_s": 455,
+   "duration_min": 8,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.97313,41.00629?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-basilica-cistern-osman-gourmet-restaurant",
+    "title": "foot time Basilica Cistern -> Osman Gourmet Restaurant (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.97313,41.00629?overview=false"
+   }
+  },
+  "Basilica Cistern|Ali Usta Çiğ Köfte": {
+   "ok": true,
+   "from": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1006,
+   "duration_s": 805,
+   "duration_min": 13,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.97512,41.01473?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-basilica-cistern-ali-usta-cig-kofte",
+    "title": "foot time Basilica Cistern -> Ali Usta Çiğ Köfte (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97780,41.00810;28.97512,41.01473?overview=false"
+   }
+  },
+  "Galata Tower|Hagia Sophia": {
+   "ok": true,
+   "from": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2622,
+   "duration_s": 2100,
+   "duration_min": 35,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.97990,41.00850?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-galata-tower-hagia-sophia",
+    "title": "foot time Galata Tower -> Hagia Sophia (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.97990,41.00850?overview=false"
+   }
+  },
+  "Galata Tower|Topkapı Palace": {
+   "ok": true,
+   "from": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2952,
+   "duration_s": 2364,
+   "duration_min": 39,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.98400,41.01300?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-galata-tower-topkapi-palace",
+    "title": "foot time Galata Tower -> Topkapı Palace (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.98400,41.01300?overview=false"
+   }
+  },
+  "Galata Tower|Basilica Cistern": {
+   "ok": true,
+   "from": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2543,
+   "duration_s": 2036,
+   "duration_min": 34,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.97780,41.00810?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-galata-tower-basilica-cistern",
+    "title": "foot time Galata Tower -> Basilica Cistern (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.97780,41.00810?overview=false"
+   }
+  },
+  "Galata Tower|Süleymaniye Mosque": {
+   "ok": true,
+   "from": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1958,
+   "duration_s": 1570,
+   "duration_min": 26,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.96390,41.01610?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-galata-tower-suleymaniye-mosque",
+    "title": "foot time Galata Tower -> Süleymaniye Mosque (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.96390,41.01610?overview=false"
+   }
+  },
+  "Galata Tower|Grand Bazaar": {
+   "ok": true,
+   "from": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2084,
+   "duration_s": 1668,
+   "duration_min": 28,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.96850,41.01060?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-galata-tower-grand-bazaar",
+    "title": "foot time Galata Tower -> Grand Bazaar (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.96850,41.01060?overview=false"
+   }
+  },
+  "Galata Tower|Dolmabahce Palace": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Galata Tower' to 'Dolmabahce Palace' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Galata Tower|Pera Museum": {
+   "ok": true,
+   "from": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 844,
+   "duration_s": 675,
+   "duration_min": 11,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.97514,41.03183?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-galata-tower-pera-museum",
+    "title": "foot time Galata Tower -> Pera Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.97514,41.03183?overview=false"
+   }
+  },
+  "Galata Tower|Hürrem Sultan Hamamı": {
+   "ok": true,
+   "from": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2640,
+   "duration_s": 2114,
+   "duration_min": 35,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.97910,41.00730?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-galata-tower-hurrem-sultan-hamami",
+    "title": "foot time Galata Tower -> Hürrem Sultan Hamamı (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.97910,41.00730?overview=false"
+   }
+  },
+  "Galata Tower|Osman Gourmet Restaurant": {
+   "ok": true,
+   "from": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2597,
+   "duration_s": 2080,
+   "duration_min": 35,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.97313,41.00629?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-galata-tower-osman-gourmet-restaurant",
+    "title": "foot time Galata Tower -> Osman Gourmet Restaurant (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.97313,41.00629?overview=false"
+   }
+  },
+  "Galata Tower|Ali Usta Çiğ Köfte": {
+   "ok": true,
+   "from": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1665,
+   "duration_s": 1332,
+   "duration_min": 22,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.97512,41.01473?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-galata-tower-ali-usta-cig-kofte",
+    "title": "foot time Galata Tower -> Ali Usta Çiğ Köfte (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97417,41.02556;28.97512,41.01473?overview=false"
+   }
+  },
+  "Süleymaniye Mosque|Hagia Sophia": {
+   "ok": true,
+   "from": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2059,
+   "duration_s": 1648,
+   "duration_min": 27,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.97990,41.00850?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-suleymaniye-mosque-hagia-sophia",
+    "title": "foot time Süleymaniye Mosque -> Hagia Sophia (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.97990,41.00850?overview=false"
+   }
+  },
+  "Süleymaniye Mosque|Topkapı Palace": {
+   "ok": true,
+   "from": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2389,
+   "duration_s": 1911,
+   "duration_min": 32,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.98400,41.01300?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-suleymaniye-mosque-topkapi-palace",
+    "title": "foot time Süleymaniye Mosque -> Topkapı Palace (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.98400,41.01300?overview=false"
+   }
+  },
+  "Süleymaniye Mosque|Basilica Cistern": {
+   "ok": true,
+   "from": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1904,
+   "duration_s": 1526,
+   "duration_min": 25,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.97780,41.00810?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-suleymaniye-mosque-basilica-cistern",
+    "title": "foot time Süleymaniye Mosque -> Basilica Cistern (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.97780,41.00810?overview=false"
+   }
+  },
+  "Süleymaniye Mosque|Galata Tower": {
+   "ok": true,
+   "from": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1958,
+   "duration_s": 1570,
+   "duration_min": 26,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.97417,41.02556?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-suleymaniye-mosque-galata-tower",
+    "title": "foot time Süleymaniye Mosque -> Galata Tower (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.97417,41.02556?overview=false"
+   }
+  },
+  "Süleymaniye Mosque|Grand Bazaar": {
+   "ok": true,
+   "from": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 987,
+   "duration_s": 790,
+   "duration_min": 13,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.96850,41.01060?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-suleymaniye-mosque-grand-bazaar",
+    "title": "foot time Süleymaniye Mosque -> Grand Bazaar (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.96850,41.01060?overview=false"
+   }
+  },
+  "Süleymaniye Mosque|Dolmabahce Palace": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Süleymaniye Mosque' to 'Dolmabahce Palace' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Süleymaniye Mosque|Pera Museum": {
+   "ok": true,
+   "from": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2555,
+   "duration_s": 2046,
+   "duration_min": 34,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.97514,41.03183?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-suleymaniye-mosque-pera-museum",
+    "title": "foot time Süleymaniye Mosque -> Pera Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.97514,41.03183?overview=false"
+   }
+  },
+  "Süleymaniye Mosque|Hürrem Sultan Hamamı": {
+   "ok": true,
+   "from": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1912,
+   "duration_s": 1534,
+   "duration_min": 26,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.97910,41.00730?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-suleymaniye-mosque-hurrem-sultan-hamami",
+    "title": "foot time Süleymaniye Mosque -> Hürrem Sultan Hamamı (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.97910,41.00730?overview=false"
+   }
+  },
+  "Süleymaniye Mosque|Osman Gourmet Restaurant": {
+   "ok": true,
+   "from": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1688,
+   "duration_s": 1353,
+   "duration_min": 23,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.97313,41.00629?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-suleymaniye-mosque-osman-gourmet-restaurant",
+    "title": "foot time Süleymaniye Mosque -> Osman Gourmet Restaurant (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.97313,41.00629?overview=false"
+   }
+  },
+  "Süleymaniye Mosque|Ali Usta Çiğ Köfte": {
+   "ok": true,
+   "from": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "to": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1180,
+   "duration_s": 944,
+   "duration_min": 16,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.97512,41.01473?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-suleymaniye-mosque-ali-usta-cig-kofte",
+    "title": "foot time Süleymaniye Mosque -> Ali Usta Çiğ Köfte (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96390,41.01610;28.97512,41.01473?overview=false"
+   }
+  },
+  "Grand Bazaar|Hagia Sophia": {
+   "ok": true,
+   "from": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "to": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1150,
+   "duration_s": 922,
+   "duration_min": 15,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.97990,41.00850?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-grand-bazaar-hagia-sophia",
+    "title": "foot time Grand Bazaar -> Hagia Sophia (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.97990,41.00850?overview=false"
+   }
+  },
+  "Grand Bazaar|Topkapı Palace": {
+   "ok": true,
+   "from": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "to": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1756,
+   "duration_s": 1405,
+   "duration_min": 23,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.98400,41.01300?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-grand-bazaar-topkapi-palace",
+    "title": "foot time Grand Bazaar -> Topkapı Palace (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.98400,41.01300?overview=false"
+   }
+  },
+  "Grand Bazaar|Basilica Cistern": {
+   "ok": true,
+   "from": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "to": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 942,
+   "duration_s": 755,
+   "duration_min": 13,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.97780,41.00810?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-grand-bazaar-basilica-cistern",
+    "title": "foot time Grand Bazaar -> Basilica Cistern (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.97780,41.00810?overview=false"
+   }
+  },
+  "Grand Bazaar|Galata Tower": {
+   "ok": true,
+   "from": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "to": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2084,
+   "duration_s": 1668,
+   "duration_min": 28,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.97417,41.02556?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-grand-bazaar-galata-tower",
+    "title": "foot time Grand Bazaar -> Galata Tower (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.97417,41.02556?overview=false"
+   }
+  },
+  "Grand Bazaar|Süleymaniye Mosque": {
+   "ok": true,
+   "from": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "to": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 987,
+   "duration_s": 790,
+   "duration_min": 13,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.96390,41.01610?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-grand-bazaar-suleymaniye-mosque",
+    "title": "foot time Grand Bazaar -> Süleymaniye Mosque (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.96390,41.01610?overview=false"
+   }
+  },
+  "Grand Bazaar|Dolmabahce Palace": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Grand Bazaar' to 'Dolmabahce Palace' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Grand Bazaar|Pera Museum": {
+   "ok": true,
+   "from": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "to": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2830,
+   "duration_s": 2264,
+   "duration_min": 38,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.97514,41.03183?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-grand-bazaar-pera-museum",
+    "title": "foot time Grand Bazaar -> Pera Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.97514,41.03183?overview=false"
+   }
+  },
+  "Grand Bazaar|Hürrem Sultan Hamamı": {
+   "ok": true,
+   "from": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "to": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1116,
+   "duration_s": 895,
+   "duration_min": 15,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.97910,41.00730?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-grand-bazaar-hurrem-sultan-hamami",
+    "title": "foot time Grand Bazaar -> Hürrem Sultan Hamamı (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.97910,41.00730?overview=false"
+   }
+  },
+  "Grand Bazaar|Osman Gourmet Restaurant": {
+   "ok": true,
+   "from": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "to": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 725,
+   "duration_s": 582,
+   "duration_min": 10,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.97313,41.00629?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-grand-bazaar-osman-gourmet-restaurant",
+    "title": "foot time Grand Bazaar -> Osman Gourmet Restaurant (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.97313,41.00629?overview=false"
+   }
+  },
+  "Grand Bazaar|Ali Usta Çiğ Köfte": {
+   "ok": true,
+   "from": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "to": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 966,
+   "duration_s": 773,
+   "duration_min": 13,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.97512,41.01473?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-grand-bazaar-ali-usta-cig-kofte",
+    "title": "foot time Grand Bazaar -> Ali Usta Çiğ Köfte (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.96850,41.01060;28.97512,41.01473?overview=false"
+   }
+  },
+  "Dolmabahce Palace|Hagia Sophia": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Dolmabahce Palace' to 'Hagia Sophia' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Dolmabahce Palace|Topkapı Palace": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Dolmabahce Palace' to 'Topkapı Palace' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Dolmabahce Palace|Basilica Cistern": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Dolmabahce Palace' to 'Basilica Cistern' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Dolmabahce Palace|Galata Tower": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Dolmabahce Palace' to 'Galata Tower' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Dolmabahce Palace|Süleymaniye Mosque": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Dolmabahce Palace' to 'Süleymaniye Mosque' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Dolmabahce Palace|Grand Bazaar": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Dolmabahce Palace' to 'Grand Bazaar' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Dolmabahce Palace|Pera Museum": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Dolmabahce Palace' to 'Pera Museum' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Dolmabahce Palace|Hürrem Sultan Hamamı": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Dolmabahce Palace' to 'Hürrem Sultan Hamamı' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Dolmabahce Palace|Osman Gourmet Restaurant": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Dolmabahce Palace' to 'Osman Gourmet Restaurant' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Dolmabahce Palace|Ali Usta Çiğ Köfte": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Dolmabahce Palace' to 'Ali Usta Çiğ Köfte' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Pera Museum|Hagia Sophia": {
+   "ok": true,
+   "from": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 3367,
+   "duration_s": 2696,
+   "duration_min": 45,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.97990,41.00850?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-pera-museum-hagia-sophia",
+    "title": "foot time Pera Museum -> Hagia Sophia (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.97990,41.00850?overview=false"
+   }
+  },
+  "Pera Museum|Topkapı Palace": {
+   "ok": true,
+   "from": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 3697,
+   "duration_s": 2960,
+   "duration_min": 49,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.98400,41.01300?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-pera-museum-topkapi-palace",
+    "title": "foot time Pera Museum -> Topkapı Palace (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.98400,41.01300?overview=false"
+   }
+  },
+  "Pera Museum|Basilica Cistern": {
+   "ok": true,
+   "from": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 3288,
+   "duration_s": 2632,
+   "duration_min": 44,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.97780,41.00810?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-pera-museum-basilica-cistern",
+    "title": "foot time Pera Museum -> Basilica Cistern (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.97780,41.00810?overview=false"
+   }
+  },
+  "Pera Museum|Galata Tower": {
+   "ok": true,
+   "from": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 844,
+   "duration_s": 675,
+   "duration_min": 11,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.97417,41.02556?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-pera-museum-galata-tower",
+    "title": "foot time Pera Museum -> Galata Tower (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.97417,41.02556?overview=false"
+   }
+  },
+  "Pera Museum|Süleymaniye Mosque": {
+   "ok": true,
+   "from": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2555,
+   "duration_s": 2046,
+   "duration_min": 34,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.96390,41.01610?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-pera-museum-suleymaniye-mosque",
+    "title": "foot time Pera Museum -> Süleymaniye Mosque (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.96390,41.01610?overview=false"
+   }
+  },
+  "Pera Museum|Grand Bazaar": {
+   "ok": true,
+   "from": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2830,
+   "duration_s": 2264,
+   "duration_min": 38,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.96850,41.01060?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-pera-museum-grand-bazaar",
+    "title": "foot time Pera Museum -> Grand Bazaar (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.96850,41.01060?overview=false"
+   }
+  },
+  "Pera Museum|Dolmabahce Palace": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Pera Museum' to 'Dolmabahce Palace' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Pera Museum|Hürrem Sultan Hamamı": {
+   "ok": true,
+   "from": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 3385,
+   "duration_s": 2710,
+   "duration_min": 45,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.97910,41.00730?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-pera-museum-hurrem-sultan-hamami",
+    "title": "foot time Pera Museum -> Hürrem Sultan Hamamı (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.97910,41.00730?overview=false"
+   }
+  },
+  "Pera Museum|Osman Gourmet Restaurant": {
+   "ok": true,
+   "from": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 3342,
+   "duration_s": 2676,
+   "duration_min": 45,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.97313,41.00629?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-pera-museum-osman-gourmet-restaurant",
+    "title": "foot time Pera Museum -> Osman Gourmet Restaurant (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.97313,41.00629?overview=false"
+   }
+  },
+  "Pera Museum|Ali Usta Çiğ Köfte": {
+   "ok": true,
+   "from": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "to": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2410,
+   "duration_s": 1928,
+   "duration_min": 32,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.97512,41.01473?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-pera-museum-ali-usta-cig-kofte",
+    "title": "foot time Pera Museum -> Ali Usta Çiğ Köfte (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97514,41.03183;28.97512,41.01473?overview=false"
+   }
+  },
+  "Hürrem Sultan Hamamı|Hagia Sophia": {
+   "ok": true,
+   "from": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "to": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 250,
+   "duration_s": 200,
+   "duration_min": 3,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.97990,41.00850?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hurrem-sultan-hamami-hagia-sophia",
+    "title": "foot time Hürrem Sultan Hamamı -> Hagia Sophia (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.97990,41.00850?overview=false"
+   }
+  },
+  "Hürrem Sultan Hamamı|Topkapı Palace": {
+   "ok": true,
+   "from": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "to": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 987,
+   "duration_s": 790,
+   "duration_min": 13,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.98400,41.01300?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hurrem-sultan-hamami-topkapi-palace",
+    "title": "foot time Hürrem Sultan Hamamı -> Topkapı Palace (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.98400,41.01300?overview=false"
+   }
+  },
+  "Hürrem Sultan Hamamı|Basilica Cistern": {
+   "ok": true,
+   "from": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "to": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 210,
+   "duration_s": 170,
+   "duration_min": 3,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.97780,41.00810?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hurrem-sultan-hamami-basilica-cistern",
+    "title": "foot time Hürrem Sultan Hamamı -> Basilica Cistern (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.97780,41.00810?overview=false"
+   }
+  },
+  "Hürrem Sultan Hamamı|Galata Tower": {
+   "ok": true,
+   "from": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "to": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2640,
+   "duration_s": 2114,
+   "duration_min": 35,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.97417,41.02556?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hurrem-sultan-hamami-galata-tower",
+    "title": "foot time Hürrem Sultan Hamamı -> Galata Tower (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.97417,41.02556?overview=false"
+   }
+  },
+  "Hürrem Sultan Hamamı|Süleymaniye Mosque": {
+   "ok": true,
+   "from": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "to": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1912,
+   "duration_s": 1534,
+   "duration_min": 26,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.96390,41.01610?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hurrem-sultan-hamami-suleymaniye-mosque",
+    "title": "foot time Hürrem Sultan Hamamı -> Süleymaniye Mosque (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.96390,41.01610?overview=false"
+   }
+  },
+  "Hürrem Sultan Hamamı|Grand Bazaar": {
+   "ok": true,
+   "from": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "to": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1116,
+   "duration_s": 895,
+   "duration_min": 15,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.96850,41.01060?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hurrem-sultan-hamami-grand-bazaar",
+    "title": "foot time Hürrem Sultan Hamamı -> Grand Bazaar (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.96850,41.01060?overview=false"
+   }
+  },
+  "Hürrem Sultan Hamamı|Dolmabahce Palace": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Hürrem Sultan Hamamı' to 'Dolmabahce Palace' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Hürrem Sultan Hamamı|Pera Museum": {
+   "ok": true,
+   "from": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "to": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 3385,
+   "duration_s": 2710,
+   "duration_min": 45,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.97514,41.03183?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hurrem-sultan-hamami-pera-museum",
+    "title": "foot time Hürrem Sultan Hamamı -> Pera Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.97514,41.03183?overview=false"
+   }
+  },
+  "Hürrem Sultan Hamamı|Osman Gourmet Restaurant": {
+   "ok": true,
+   "from": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "to": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 703,
+   "duration_s": 562,
+   "duration_min": 9,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.97313,41.00629?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hurrem-sultan-hamami-osman-gourmet-restaurant",
+    "title": "foot time Hürrem Sultan Hamamı -> Osman Gourmet Restaurant (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.97313,41.00629?overview=false"
+   }
+  },
+  "Hürrem Sultan Hamamı|Ali Usta Çiğ Köfte": {
+   "ok": true,
+   "from": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "to": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1103,
+   "duration_s": 882,
+   "duration_min": 15,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.97512,41.01473?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-hurrem-sultan-hamami-ali-usta-cig-kofte",
+    "title": "foot time Hürrem Sultan Hamamı -> Ali Usta Çiğ Köfte (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97910,41.00730;28.97512,41.01473?overview=false"
+   }
+  },
+  "Osman Gourmet Restaurant|Hagia Sophia": {
+   "ok": true,
+   "from": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 768,
+   "duration_s": 614,
+   "duration_min": 10,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.97990,41.00850?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-osman-gourmet-restaurant-hagia-sophia",
+    "title": "foot time Osman Gourmet Restaurant -> Hagia Sophia (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.97990,41.00850?overview=false"
+   }
+  },
+  "Osman Gourmet Restaurant|Topkapı Palace": {
+   "ok": true,
+   "from": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1612,
+   "duration_s": 1290,
+   "duration_min": 22,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.98400,41.01300?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-osman-gourmet-restaurant-topkapi-palace",
+    "title": "foot time Osman Gourmet Restaurant -> Topkapı Palace (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.98400,41.01300?overview=false"
+   }
+  },
+  "Osman Gourmet Restaurant|Basilica Cistern": {
+   "ok": true,
+   "from": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 569,
+   "duration_s": 455,
+   "duration_min": 8,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.97780,41.00810?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-osman-gourmet-restaurant-basilica-cistern",
+    "title": "foot time Osman Gourmet Restaurant -> Basilica Cistern (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.97780,41.00810?overview=false"
+   }
+  },
+  "Osman Gourmet Restaurant|Galata Tower": {
+   "ok": true,
+   "from": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2597,
+   "duration_s": 2080,
+   "duration_min": 35,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.97417,41.02556?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-osman-gourmet-restaurant-galata-tower",
+    "title": "foot time Osman Gourmet Restaurant -> Galata Tower (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.97417,41.02556?overview=false"
+   }
+  },
+  "Osman Gourmet Restaurant|Süleymaniye Mosque": {
+   "ok": true,
+   "from": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1688,
+   "duration_s": 1353,
+   "duration_min": 23,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.96390,41.01610?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-osman-gourmet-restaurant-suleymaniye-mosque",
+    "title": "foot time Osman Gourmet Restaurant -> Süleymaniye Mosque (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.96390,41.01610?overview=false"
+   }
+  },
+  "Osman Gourmet Restaurant|Grand Bazaar": {
+   "ok": true,
+   "from": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 725,
+   "duration_s": 582,
+   "duration_min": 10,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.96850,41.01060?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-osman-gourmet-restaurant-grand-bazaar",
+    "title": "foot time Osman Gourmet Restaurant -> Grand Bazaar (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.96850,41.01060?overview=false"
+   }
+  },
+  "Osman Gourmet Restaurant|Dolmabahce Palace": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Osman Gourmet Restaurant' to 'Dolmabahce Palace' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Osman Gourmet Restaurant|Pera Museum": {
+   "ok": true,
+   "from": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 3342,
+   "duration_s": 2676,
+   "duration_min": 45,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.97514,41.03183?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-osman-gourmet-restaurant-pera-museum",
+    "title": "foot time Osman Gourmet Restaurant -> Pera Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.97514,41.03183?overview=false"
+   }
+  },
+  "Osman Gourmet Restaurant|Hürrem Sultan Hamamı": {
+   "ok": true,
+   "from": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 703,
+   "duration_s": 562,
+   "duration_min": 9,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.97910,41.00730?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-osman-gourmet-restaurant-hurrem-sultan-hamami",
+    "title": "foot time Osman Gourmet Restaurant -> Hürrem Sultan Hamamı (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.97910,41.00730?overview=false"
+   }
+  },
+  "Osman Gourmet Restaurant|Ali Usta Çiğ Köfte": {
+   "ok": true,
+   "from": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1203,
+   "duration_s": 964,
+   "duration_min": 16,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.97512,41.01473?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-osman-gourmet-restaurant-ali-usta-cig-kofte",
+    "title": "foot time Osman Gourmet Restaurant -> Ali Usta Çiğ Köfte (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97313,41.00629;28.97512,41.01473?overview=false"
+   }
+  },
+  "Ali Usta Çiğ Köfte|Hagia Sophia": {
+   "ok": true,
+   "from": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Hagia Sophia",
+    "id": "wv-istanbul-hagia-sophia",
+    "lat": 41.0085,
+    "lon": 28.9799,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1085,
+   "duration_s": 868,
+   "duration_min": 14,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.97990,41.00850?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-ali-usta-cig-kofte-hagia-sophia",
+    "title": "foot time Ali Usta Çiğ Köfte -> Hagia Sophia (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.97990,41.00850?overview=false"
+   }
+  },
+  "Ali Usta Çiğ Köfte|Topkapı Palace": {
+   "ok": true,
+   "from": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Topkapı Palace",
+    "id": "wv-istanbul-topkapi-palace",
+    "lat": 41.013,
+    "lon": 28.984,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1415,
+   "duration_s": 1132,
+   "duration_min": 19,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.98400,41.01300?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-ali-usta-cig-kofte-topkapi-palace",
+    "title": "foot time Ali Usta Çiğ Köfte -> Topkapı Palace (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.98400,41.01300?overview=false"
+   }
+  },
+  "Ali Usta Çiğ Köfte|Basilica Cistern": {
+   "ok": true,
+   "from": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Basilica Cistern",
+    "id": "wv-istanbul-basilica-cistern",
+    "lat": 41.0081,
+    "lon": 28.9778,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1006,
+   "duration_s": 805,
+   "duration_min": 13,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.97780,41.00810?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-ali-usta-cig-kofte-basilica-cistern",
+    "title": "foot time Ali Usta Çiğ Köfte -> Basilica Cistern (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.97780,41.00810?overview=false"
+   }
+  },
+  "Ali Usta Çiğ Köfte|Galata Tower": {
+   "ok": true,
+   "from": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Galata Tower",
+    "id": "wv-istanbul-galata-tower",
+    "lat": 41.025556,
+    "lon": 28.974167,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1665,
+   "duration_s": 1332,
+   "duration_min": 22,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.97417,41.02556?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-ali-usta-cig-kofte-galata-tower",
+    "title": "foot time Ali Usta Çiğ Köfte -> Galata Tower (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.97417,41.02556?overview=false"
+   }
+  },
+  "Ali Usta Çiğ Köfte|Süleymaniye Mosque": {
+   "ok": true,
+   "from": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Süleymaniye Mosque",
+    "id": "wv-istanbul-suleymaniye-mosque",
+    "lat": 41.0161,
+    "lon": 28.9639,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1180,
+   "duration_s": 944,
+   "duration_min": 16,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.96390,41.01610?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-ali-usta-cig-kofte-suleymaniye-mosque",
+    "title": "foot time Ali Usta Çiğ Köfte -> Süleymaniye Mosque (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.96390,41.01610?overview=false"
+   }
+  },
+  "Ali Usta Çiğ Köfte|Grand Bazaar": {
+   "ok": true,
+   "from": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Grand Bazaar",
+    "id": "wv-istanbul-grand-bazaar",
+    "lat": 41.0106,
+    "lon": 28.9685,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Buy"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 966,
+   "duration_s": 773,
+   "duration_min": 13,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.96850,41.01060?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-ali-usta-cig-kofte-grand-bazaar",
+    "title": "foot time Ali Usta Çiğ Köfte -> Grand Bazaar (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.96850,41.01060?overview=false"
+   }
+  },
+  "Ali Usta Çiğ Köfte|Dolmabahce Palace": {
+   "ok": false,
+   "error": {
+    "code": "not_cached",
+    "message": "A foot route from 'Ali Usta Çiğ Köfte' to 'Dolmabahce Palace' is not in the replay cache. The cache covers Istanbul and Amman (see the kit README). Cached routes connect the top attractions and restaurants of each city.",
+    "mode": "replay",
+    "status": 404
+   }
+  },
+  "Ali Usta Çiğ Köfte|Pera Museum": {
+   "ok": true,
+   "from": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Pera Museum",
+    "id": "wv-istanbul-pera-museum",
+    "lat": 41.031833,
+    "lon": 28.975139,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Galata#See"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 2410,
+   "duration_s": 1928,
+   "duration_min": 32,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.97514,41.03183?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-ali-usta-cig-kofte-pera-museum",
+    "title": "foot time Ali Usta Çiğ Köfte -> Pera Museum (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.97514,41.03183?overview=false"
+   }
+  },
+  "Ali Usta Çiğ Köfte|Hürrem Sultan Hamamı": {
+   "ok": true,
+   "from": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Hürrem Sultan Hamamı",
+    "id": "wv-istanbul-hurrem-sultan-hamami",
+    "lat": 41.0073,
+    "lon": 28.9791,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Do"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1103,
+   "duration_s": 882,
+   "duration_min": 15,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.97910,41.00730?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-ali-usta-cig-kofte-hurrem-sultan-hamami",
+    "title": "foot time Ali Usta Çiğ Köfte -> Hürrem Sultan Hamamı (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.97910,41.00730?overview=false"
+   }
+  },
+  "Ali Usta Çiğ Köfte|Osman Gourmet Restaurant": {
+   "ok": true,
+   "from": {
+    "name": "Ali Usta Çiğ Köfte",
+    "id": "wv-istanbul-ali-usta-cig-kofte",
+    "lat": 41.014734,
+    "lon": 28.975121,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "to": {
+    "name": "Osman Gourmet Restaurant",
+    "id": "wv-istanbul-osman-gourmet-restaurant",
+    "lat": 41.006289,
+    "lon": 28.973126,
+    "resolved_by": "wikivoyage listing",
+    "source_url": "https://en.wikivoyage.org/wiki/Istanbul/Historical_Peninsula#Eat"
+   },
+   "city": "Istanbul",
+   "profile": "foot",
+   "distance_m": 1203,
+   "duration_s": 964,
+   "duration_min": 16,
+   "via": "cached duration matrix (OSRM table service)",
+   "note": "Walking time on OpenStreetMap paths (about 4-5 km/h), no stops.",
+   "source": "FOSSGIS OSRM routing (foot)",
+   "source_url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.97313,41.00629?overview=false",
+   "licence": "Data (c) OpenStreetMap contributors, ODbL (https://www.openstreetmap.org/copyright)",
+   "retrieved_at": "2026-10-23T22:26:40Z",
+   "mode": "replay",
+   "citation": {
+    "id": "osrm-foot-ali-usta-cig-kofte-osman-gourmet-restaurant",
+    "title": "foot time Ali Usta Çiğ Köfte -> Osman Gourmet Restaurant (OSRM, OpenStreetMap)",
+    "url": "https://routing.openstreetmap.de/routed-foot/route/v1/driving/28.97512,41.01473;28.97313,41.00629?overview=false"
+   }
+  }
+ }
+}

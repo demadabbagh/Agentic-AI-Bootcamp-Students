@@ -14,9 +14,10 @@ from typing import Iterable, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .models import IsoDate, Money
+from .models import IsoDate, Money, Time
 
 SCHEMA_VERSION = "provisional-1"
+DEFAULT_DAY_START, DEFAULT_DAY_END = "09:00", "21:00"  # the planning day when the traveller says nothing
 
 
 class TripRequest(BaseModel):
@@ -32,6 +33,10 @@ class TripRequest(BaseModel):
     interests: list[str] = Field(default_factory=list)
     budget_style: str | None = None  # budget | mid-range | splurge (saved preferences)
     required_places: list[str] = Field(default_factory=list)  # places the traveller explicitly asked for
+    # Scheduling preferences (saved preferences or the request; the Coordinator fills them in)
+    max_walk_minutes: int | None = Field(default=None, ge=1, le=240, strict=True)  # longest walk between stops
+    day_start: Time = DEFAULT_DAY_START  # first activity starts no earlier
+    day_end: Time = DEFAULT_DAY_END  # last activity ends no later
 
     @field_validator("currency", mode="before")
     @classmethod
@@ -42,6 +47,8 @@ class TripRequest(BaseModel):
     def _dates(self) -> TripRequest:
         if self.end_date < self.start_date:
             raise ValueError(f"end_date {self.end_date} is before start_date {self.start_date}")
+        if self.day_end <= self.day_start:
+            raise ValueError(f"day_end {self.day_end} must be after day_start {self.day_start}")
         return self
 
     @property
@@ -67,6 +74,10 @@ class ResearchedPlace(BaseModel):
     citation: dict | None = None
     synthetic: bool = False  # a synthetic test listing (overlay), not a real place
     description: str | None = None  # untrusted text: kept for the record, never sent to an LLM by planning
+    # Scheduling data from the same listing (all optional: older bundles and listings without them still load)
+    hours: dict | None = None  # the listing's parsed hours (travel_data.parse_hours); None = the listing has none
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lon: float | None = Field(default=None, ge=-180, le=180)
 
     @classmethod
     def from_listing(cls, item: dict, category: Literal["attraction", "restaurant"]) -> ResearchedPlace:
@@ -75,7 +86,8 @@ class ResearchedPlace(BaseModel):
                    price_sources=item.get("price_sources"), price_conflict=bool(item.get("price_conflict")),
                    price_tier=item.get("price_tier"), source_url=item.get("source_url"),
                    citation=item.get("citation"), synthetic=bool(item.get("synthetic")),
-                   description=item.get("description"))
+                   description=item.get("description"), hours=item.get("hours"), lat=item.get("lat"),
+                   lon=item.get("lon"))
 
 
 class ToolFailure(BaseModel):

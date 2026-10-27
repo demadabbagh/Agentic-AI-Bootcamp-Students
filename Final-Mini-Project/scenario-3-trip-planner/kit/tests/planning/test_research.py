@@ -45,6 +45,35 @@ def test_the_same_listing_twice_is_kept_once():
     assert [p.place_id for p in b.places] == ["wv-istanbul-hagia-sophia"]
 
 
+def test_scheduling_data_and_sources_are_preserved_from_the_listing():
+    places = {p.place_id: p for p in bundle().places}
+    topkapi = places["wv-istanbul-topkapi-palace"]
+    assert topkapi.hours["raw"] == "Wed-Mon 09:00-17:00" and topkapi.hours["closed_days"] == ["Tue"]
+    assert topkapi.lat == pytest.approx(41.0115, abs=0.01) and topkapi.lon == pytest.approx(28.9834, abs=0.01)
+    assert topkapi.district and topkapi.source_url and topkapi.citation["id"] == topkapi.place_id
+    assert bundle("amman").places[0].hours is None  # Amman Citadel: the listing gives no hours
+
+
+def test_bundles_without_the_new_fields_still_load():
+    old_place = {"place_id": "x", "name": "Old Place", "category": "attraction"}
+    old = ResearchBundle.model_validate({"trip": {k: v for k, v in TRIP.items()}, "places": [old_place]})
+    p = old.places[0]
+    assert (p.hours, p.lat, p.lon) == (None, None, None)
+    assert (old.trip.day_start, old.trip.day_end, old.trip.max_walk_minutes) == ("09:00", "21:00", None)
+
+
+def test_scheduling_preferences_are_validated():
+    t = TripRequest(**{**TRIP, "max_walk_minutes": 25, "day_start": "08:30", "day_end": "20:00"})
+    assert (t.max_walk_minutes, t.day_start, t.day_end) == (25, "08:30", "20:00")
+    for bad in ({"day_start": "21:00", "day_end": "09:00"}, {"day_end": "24:00"}, {"max_walk_minutes": 0},
+                {"max_walk_minutes": "25"}):
+        with pytest.raises(ValidationError):
+            TripRequest(**{**TRIP, **bad})
+    with pytest.raises(ValidationError):  # coordinates out of range are refused
+        ResearchBundle.model_validate({"trip": TRIP, "places": [{"place_id": "x", "name": "X", "category": "attraction",
+                                                                  "lat": 123.0}]})
+
+
 def test_trip_request_rules():
     t = TripRequest(**{**TRIP, "currency": " usd "})
     assert t.currency == "USD" and t.days == 3
