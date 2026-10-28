@@ -3,8 +3,10 @@ from copy import deepcopy
 from app.coordinator import understand_trip_request
 from app.memory import get_session, update_trip_details
 from app.mock_agents import research_trip, plan_trip, verify_trip
+from app.planning_adapter import run_planning_pipeline
 from app.revision import RevisionNotAvailableError, revise_itinerary
 from app.verification_loop import verify_with_retries
+from planning.research import ResearchBundle
 
 
 MAX_VERIFICATION_ATTEMPTS = 3
@@ -17,8 +19,8 @@ def _verify_itinerary(
     """
     Verify an itinerary using a bounded retry loop.
 
-    The repair agent is optional until the real Planning Agent
-    supports repairing a plan based on verification feedback.
+    The mock verifier remains available for legacy tests.
+    It must not be treated as real verification.
     """
     return verify_with_retries(
         itinerary=itinerary,
@@ -31,19 +33,15 @@ def _verify_itinerary(
 def orchestrate_trip(
     user_request: str,
     session_id: str | None = None,
+    research_bundle: ResearchBundle | None = None,
 ) -> dict:
     """
     Coordinate the trip planning workflow.
 
-    Workflow:
-    1. Load session memory.
-    2. Understand the user's intent.
-    3. Handle revisions and approvals.
-    4. Merge trip details.
-    5. Research the destination.
-    6. Plan the itinerary.
-    7. Verify with bounded retries.
-    8. Request user approval.
+    A ResearchBundle can be supplied by the real Research Agent.
+
+    Until a real verifier is connected, real planning results
+    must not enter the approval workflow.
     """
 
     # STEP 1: Load session memory
@@ -147,18 +145,63 @@ def orchestrate_trip(
             ),
         }
 
-    # STEP 8: Research Agent
+    # STEP 8: Real Planning Pipeline
+    if research_bundle is not None:
+        requested_destination = trip_info["destination"]
+        researched_destination = research_bundle.trip.destination
+
+        if (
+            requested_destination.strip().casefold()
+            != researched_destination.strip().casefold()
+        ):
+            return {
+                "status": "needs_clarification",
+                "message": (
+                    "The research destination does not match "
+                    "the requested destination."
+                ),
+            }
+
+        print("2. ResearchBundle received")
+
+        planning_result = run_planning_pipeline(research_bundle)
+
+        print("3. Real Planning Pipeline finished")
+
+        itinerary = planning_result["itinerary"]
+
+        if itinerary is None:
+            return {
+                "status": "needs_revision",
+                "message": (
+                    "The Planning Agent could not produce "
+                    "a complete itinerary."
+                ),
+            }
+
+        # The real verifier is not connected yet.
+        # Never approve a real itinerary using the mock verifier.
+        return {
+            "status": "verification_required",
+            "message": (
+                "The itinerary was generated successfully, "
+                "but real verification is required before approval."
+            ),
+            "itinerary": itinerary,
+        }
+
+    # STEP 9: Legacy Mock Workflow
+    # Kept temporarily for existing unit tests.
     research = research_trip(user_request)
-    print("2. Research Agent finished")
+    print("2. Mock Research Agent finished")
 
-    # STEP 9: Planning Agent
     itinerary = plan_trip(research)
-    print("3. Planning Agent finished")
+    print("3. Mock Planning Agent finished")
 
-    # STEP 10: Verification Loop
     verification = _verify_itinerary(itinerary)
+
     print(
-        f"4. Verification finished after "
+        f"4. Mock Verification finished after "
         f"{verification['attempts']} attempt(s)"
     )
 
@@ -169,7 +212,6 @@ def orchestrate_trip(
             "issues": verification["issues"],
         }
 
-    # STEP 11: Request user approval
     return {
         "status": "pending_approval",
         "itinerary": verification["itinerary"],
