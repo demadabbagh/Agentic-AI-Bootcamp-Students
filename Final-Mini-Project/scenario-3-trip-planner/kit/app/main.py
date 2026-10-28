@@ -102,6 +102,13 @@ def approve(request: ApproveRequest):
             "message": "Trip was not saved",
         }
 
+    # Only a trusted, verified pending action may be saved.
+    if pending.get("verification_status") != "verified":
+        raise HTTPException(
+            status_code=403,
+            detail="Trip has not passed real verification.",
+        )
+
     traveller_id = os.getenv("TRAVEL_TRAVELLER_ID", "").strip()
 
     if not traveller_id:

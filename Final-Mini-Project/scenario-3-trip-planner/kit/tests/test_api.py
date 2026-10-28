@@ -42,6 +42,7 @@ def make_pending_trip(session_id="test-session"):
         "pending_action": {
             "action_id": "correct-id",
             "type": "save_trip",
+            "verification_status": "verified",
             "payload": {"itinerary": itinerary},
         },
     }
@@ -261,3 +262,21 @@ def test_sessions_are_isolated():
         sessions["session-B"]["itinerary"]["destination"]
         == "Istanbul"
     )
+
+def test_unverified_trip_cannot_be_saved():
+    make_pending_trip()
+    sessions["test-session"]["pending_action"]["verification_status"] = "unverified"
+
+    with patch("app.main.save_trip_to_store") as save_mock:
+        response = client.post(
+            "/api/approve",
+            json={
+                "session_id": "test-session",
+                "action_id": "correct-id",
+                "approved": True,
+            },
+        )
+
+    assert response.status_code == 403
+    save_mock.assert_not_called()
+    assert sessions["test-session"]["pending_action"] is not None

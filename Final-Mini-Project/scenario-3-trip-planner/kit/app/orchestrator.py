@@ -84,18 +84,15 @@ def orchestrate_trip(
                 ),
             }
 
-        verification = _verify_itinerary(revised_itinerary)
-
-        if not verification["approved"]:
-            return {
-                "status": "needs_revision",
-                "message": "The revised itinerary did not pass verification.",
-                "issues": verification["issues"],
-            }
-
+        # Real verification is not connected yet.
+        # Never approve a revision using the mock verifier.
         return {
-            "status": "pending_approval",
-            "itinerary": verification["itinerary"],
+            "status": "verification_required",
+            "message": (
+                "The revised itinerary was generated, but real "
+                "verification is required before approval."
+            ),
+            "itinerary": revised_itinerary,
         }
 
     # STEP 4: Approval must use /api/approve
