@@ -57,7 +57,7 @@ def test_health():
     assert response.json()["status"] == "ok"
 
 
-def test_chat_creates_pending_approval():
+def test_chat_blocks_unverified_pending_approval():
     mock_result = {
         "status": "pending_approval",
         "itinerary": {
@@ -85,10 +85,10 @@ def test_chat_creates_pending_approval():
 
     data = response.json()
 
-    assert data["status"] == "pending_approval"
+    assert data["status"] == "verification_required"
     assert data["itinerary"]["destination"] == "Amman"
-    assert data["pending_action"]["type"] == "save_trip"
-    assert data["pending_action"]["action_id"]
+    assert data["pending_action"] is None
+    assert sessions["test-session"]["pending_action"] is None
 
 
 def test_invalid_approval_is_rejected():

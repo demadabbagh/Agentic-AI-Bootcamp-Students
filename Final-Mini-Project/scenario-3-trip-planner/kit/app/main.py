@@ -41,22 +41,28 @@ def chat(request: ChatRequest):
 
     status = result["status"]
 
-    itinerary = session.get("itinerary")
-    pending_action = session.get("pending_action")
-
+    # Fail closed until a trusted real verifier is integrated.
+    # A status string from an orchestrator is not verification proof.
     if status == "pending_approval":
-        itinerary = deepcopy(result["itinerary"])
-
-        pending_action = {
-            "action_id": str(uuid4()),
-            "type": "save_trip",
-            "payload": {
-                "itinerary": deepcopy(itinerary),
-            },
+        status = "verification_required"
+        result = {
+            **result,
+            "status": status,
+            "message": (
+                "The itinerary cannot be approved until "
+                "real verification is completed."
+            ),
         }
 
-        session["itinerary"] = itinerary
-        session["pending_action"] = pending_action
+    if status == "verification_required":
+        # Show the newly generated itinerary, but never create
+        # or expose a save approval action for an unverified trip.
+        session["pending_action"] = None
+        itinerary = deepcopy(result.get("itinerary"))
+        pending_action = None
+    else:
+        itinerary = deepcopy(session.get("itinerary"))
+        pending_action = None
 
     return ChatResponse(
         session_id=request.session_id,
