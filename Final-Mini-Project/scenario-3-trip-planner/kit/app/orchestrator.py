@@ -7,7 +7,7 @@ from app.planning_adapter import run_planning_pipeline
 from app.revision import RevisionNotAvailableError, revise_itinerary
 from app.verification_loop import verify_with_retries
 from planning.research import ResearchBundle
-
+from app.research_adapter import ResearchInputError, run_research_pipeline
 
 MAX_VERIFICATION_ATTEMPTS = 3
 
@@ -128,6 +128,9 @@ def orchestrate_trip(
         "duration_days",
         "budget",
         "currency",
+        "travellers",
+        "start_date",
+        "end_date",
     )
 
     missing_fields = [
@@ -145,7 +148,24 @@ def orchestrate_trip(
             ),
         }
 
-    # STEP 8: Real Planning Pipeline
+        # STEP 8: Real Research + Planning Pipeline
+    if research_bundle is None:
+        try:
+            research_bundle = run_research_pipeline(trip_info)
+        except ResearchInputError as error:
+            return {
+                "status": "needs_clarification",
+                "message": str(error),
+            }
+        except Exception:
+            return {
+                "status": "research_unavailable",
+                "message": (
+                    "The research service is currently unavailable. "
+                    "No itinerary has been approved or saved."
+                ),
+            }
+
     if research_bundle is not None:
         requested_destination = trip_info["destination"]
         researched_destination = research_bundle.trip.destination
@@ -190,29 +210,14 @@ def orchestrate_trip(
             "itinerary": itinerary,
         }
 
-    # STEP 9: Legacy Mock Workflow
-    # Kept temporarily for existing unit tests.
-    research = research_trip(user_request)
-    print("2. Mock Research Agent finished")
-
-    itinerary = plan_trip(research)
-    print("3. Mock Planning Agent finished")
-
-    verification = _verify_itinerary(itinerary)
-
-    print(
-        f"4. Mock Verification finished after "
-        f"{verification['attempts']} attempt(s)"
-    )
-
-    if not verification["approved"]:
-        return {
-            "status": "needs_revision",
-            "message": "The proposed itinerary did not pass verification.",
-            "issues": verification["issues"],
-        }
+       # STEP 9: Safety fallback
+    # Never approve an itinerary through mock agents.
 
     return {
-        "status": "pending_approval",
-        "itinerary": verification["itinerary"],
+        "status": "research_unavailable",
+        "message": (
+            "The real research and planning pipeline "
+            "could not be completed. "
+            "No itinerary has been approved or saved."
+        ),
     }

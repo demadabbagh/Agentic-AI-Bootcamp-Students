@@ -5,7 +5,7 @@ from app.orchestrator import orchestrate_trip
 
 
 def test_create_trip():
-    """Test the create_trip workflow without calling OpenRouter."""
+    """Missing trip details must block planning and approval."""
 
     trip_info = {
         "intent": "create_trip",
@@ -15,30 +15,33 @@ def test_create_trip():
         "currency": "USD",
     }
 
-    with patch(
-        "app.orchestrator.understand_trip_request",
-        return_value=trip_info,
-    ), patch(
-        "app.orchestrator.research_trip",
-        return_value={"destination": "Amman"},
-    ) as research_mock, patch(
-        "app.orchestrator.plan_trip",
-        return_value={"destination": "Amman", "days": []},
-    ) as planning_mock, patch(
-        "app.orchestrator.verify_trip",
-        return_value={"approved": True, "issues": []},
-    ) as verification_mock:
-
+    with (
+        patch(
+            "app.orchestrator.understand_trip_request",
+            return_value=trip_info,
+        ),
+        patch("app.orchestrator.run_research_pipeline") as research_mock,
+        patch("app.orchestrator.run_planning_pipeline") as planning_mock,
+        patch("app.orchestrator.research_trip") as mock_research,
+        patch("app.orchestrator.plan_trip") as mock_planning,
+        patch("app.orchestrator.verify_trip") as mock_verification,
+    ):
         result = orchestrate_trip(
             "I want a 4-day trip to Amman with a budget of 600 USD"
         )
 
-        assert result["status"] == "pending_approval"
-        assert result["itinerary"]["destination"] == "Amman"
+        assert result["status"] == "needs_clarification"
+        assert "travellers" in result["message"]
+        assert "start_date" in result["message"]
+        assert "end_date" in result["message"]
 
-        research_mock.assert_called_once()
-        planning_mock.assert_called_once()
-        verification_mock.assert_called_once()
+        assert "itinerary" not in result
+
+        research_mock.assert_not_called()
+        planning_mock.assert_not_called()
+        mock_research.assert_not_called()
+        mock_planning.assert_not_called()
+        mock_verification.assert_not_called()
 
 
 def test_missing_information():
@@ -201,7 +204,10 @@ def test_trip_memory_across_messages():
             session_id=session_id,
         )
 
-        assert result2["status"] == "pending_approval"
+        assert result2["status"] == "needs_clarification"
+        assert "travellers" in result2["message"]
+        assert "start_date" in result2["message"]
+        assert "end_date" in result2["message"]
 
         assert sessions[session_id]["trip_details"] == {
             "destination": "Amman",
