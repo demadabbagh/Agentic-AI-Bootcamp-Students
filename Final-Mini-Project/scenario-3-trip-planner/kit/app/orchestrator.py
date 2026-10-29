@@ -196,6 +196,26 @@ def orchestrate_trip(
 
         print("3. Real Planning Pipeline finished")
 
+        budget_report = planning_result["budget_report"]
+        print("=== BUDGET DIAGNOSTICS ===")
+        print("Selected:", len(budget_report.selected))
+        print("Optional:", len(budget_report.optional))
+        print("Excluded:", len(budget_report.excluded))
+        print("Withheld:", len(budget_report.withheld))
+        print("Withheld reasons:", [(x.name, x.reason) for x in budget_report.withheld])
+        print("Budget warnings:", budget_report.warnings)
+        print("==========================")
+
+
+        planner_report = planning_result["planner_report"]
+
+        print("=== PLANNING DIAGNOSTICS ===")
+        print("Planner status:", planner_report.status)
+        print("Scheduled places:", len(planner_report.scheduled_place_ids))
+        print("Unscheduled places:", len(planner_report.unscheduled))
+        print("Warnings:", planner_report.warnings)
+        print("============================")
+
         itinerary = planning_result["itinerary"]
 
         if itinerary is None:
