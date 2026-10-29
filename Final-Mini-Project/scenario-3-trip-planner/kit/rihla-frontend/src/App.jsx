@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+﻿import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { createTrip } from './services/tripApi'
 
@@ -51,6 +51,10 @@ export default function App() {
     try {
       const sessionId = crypto.randomUUID()
       const result = await createTrip(trip, sessionId)
+
+      if (!result?.itinerary || !Array.isArray(result.itinerary.days) || result.itinerary.days.length === 0) {
+        throw new Error(result?.message || 'The AI could not generate a complete trip. Please try another destination.')
+      }
 
       navigate('/trip', {
         state: {
@@ -310,7 +314,7 @@ export default function App() {
                 </button>
 
                 <p className="text-center text-xs text-white/65">
-                  Thoughtful journeys, powered by AI âœ¨
+                  Thoughtful journeys, powered by AI Ã¢Å“Â¨
                 </p>
                 {error && (
                   <p role="alert" className="text-center text-sm text-red-200">
@@ -323,10 +327,11 @@ export default function App() {
         </div>
 
         <div className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-7 pb-8 text-xs text-white/70 md:px-12">
-          <span>RIHLA Â· REIMAGINE THE WAY YOU TRAVEL</span>
-          <span className="hidden md:block">SCROLL TO DISCOVER â†“</span>
+          <span>RIHLA Ã‚Â· REIMAGINE THE WAY YOU TRAVEL</span>
+          <span className="hidden md:block">SCROLL TO DISCOVER Ã¢â€ â€œ</span>
         </div>
       </section>
     </main>
   )
 }
+

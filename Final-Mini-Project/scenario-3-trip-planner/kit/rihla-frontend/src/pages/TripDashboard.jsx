@@ -1,4 +1,4 @@
-import { normalizeItinerary } from '../services/itineraryAdapter'
+﻿import { normalizeItinerary } from '../services/itineraryAdapter'
 import { useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import {
@@ -103,10 +103,10 @@ export default function TripDashboard() {
 
   const destinationName = hasAiItinerary
     ? itinerary.destination
-    : 'Istanbul'
+    : (trip.destination || 'Istanbul')
 
   const displayBudget = hasAiItinerary
-    ? `${itinerary.budget_total ?? 'Not specified'} ${itinerary.currency || 'USD'}`
+    ? `${itinerary.budget_total ?? trip.budget ?? 'Not specified'} ${itinerary.currency || 'USD'}`
     : '$1,500'
 
   const totalExperiences = days.reduce(
@@ -119,7 +119,7 @@ export default function TripDashboard() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      text: "Your Istanbul adventure is ready! ✨ Want to make any changes? I'm here to help.",
+      text: "Your Istanbul adventure is ready! âœ¨ Want to make any changes? I'm here to help.",
     },
   ])
 
@@ -264,7 +264,7 @@ export default function TripDashboard() {
           </div>
 
           <span className="rounded-full border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-700">
-            Preview itinerary · Not verified
+            Preview itinerary Â· Not verified
           </span>
         </div>
 
@@ -295,12 +295,12 @@ export default function TripDashboard() {
           />
           <div className="relative flex min-h-[240px] flex-col justify-end p-8 text-white md:p-10">
             <span className="mb-3 flex items-center gap-2 text-sm text-[#c5e9e8]">
-              <MapPin size={17} /> ISTANBUL, TÜRKIYE
+              <MapPin size={17} /> {destinationName.toUpperCase()}
             </span>
-            <h2 className="mb-5 text-3xl font-semibold">A journey between two continents.</h2>
+            <h2 className="mb-5 text-3xl font-semibold">Your personalized travel adventure.</h2>
             <div className="flex flex-wrap gap-5 text-sm text-white/85">
-              <span className="flex items-center gap-2"><CalendarDays size={17} /> Oct 29 – 31, 2026</span>
-              <span className="flex items-center gap-2"><Users size={17} /> 2 travellers</span>
+              <span className="flex items-center gap-2"><CalendarDays size={17} /> {trip.departureDate || "Start date"} - {trip.returnDate || "End date"}</span>
+              <span className="flex items-center gap-2"><Users size={17} /> {trip.travellers || 2} travellers</span>
               <span className="flex items-center gap-2"><Wallet size={17} /> {displayBudget} budget</span>
             </div>
           </div>
@@ -317,7 +317,7 @@ export default function TripDashboard() {
                   <h2 className="text-2xl font-bold">Day-by-day itinerary</h2>
                 </div>
                 <span className="rounded-full bg-[#e9f5f5] px-4 py-2 text-xs font-semibold text-[#4e8e98]">
-                  3 DAYS · 7 EXPERIENCES
+                  {days.length} DAYS - {totalExperiences} EXPERIENCES
                 </span>
               </div>
 
@@ -380,7 +380,7 @@ export default function TripDashboard() {
                   onClick={() => setActiveDay((day) => day - 1)}
                   className="rounded-xl px-4 py-3 text-sm font-semibold text-[#547a86] disabled:opacity-30"
                 >
-                  ← Previous day
+                  â† Previous day
                 </button>
                 <button
                   disabled={activeDay === days.length - 1}
@@ -482,16 +482,17 @@ export default function TripDashboard() {
                 <CheckCircle2 size={18} /> Approve itinerary
               </button>
               <p className="mt-3 text-center text-xs text-[#91a3ab]">
-                Preview mode · Approval unavailable
+                Preview mode Â· Approval unavailable
               </p>
             </section>
           </aside>
         </div>
 
         <footer className="py-12 text-center text-sm text-[#8aa0aa]">
-          Made for the curious. Powered by Rihla ✨
+          Made for the curious. Powered by Rihla âœ¨
         </footer>
       </main>
     </div>
   )
 }
+
