@@ -47,6 +47,8 @@ def create_planning_llm() -> LLM:
 def run_planning_pipeline(
     research_bundle: ResearchBundle,
     llm: Any = None,
+    *,
+    travel_lookup=None,
 ) -> dict:
     """
     Run the real Budget Analyst and Itinerary Planner.
@@ -74,6 +76,7 @@ def run_planning_pipeline(
         report=budget_report,
         bundle=research_bundle,
         llm=llm,
+        travel_lookup=travel_lookup,
     )
 
     # STEP 3: Prepare output
@@ -88,4 +91,5 @@ def run_planning_pipeline(
         ),
         "budget_report": budget_report,
         "planner_report": planner_report,
+        "itinerary_model": itinerary,
     }

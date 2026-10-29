@@ -3,7 +3,9 @@ from copy import deepcopy
 from app.coordinator import understand_trip_request
 from app.memory import get_session, update_trip_details
 from app.mock_agents import research_trip, plan_trip, verify_trip
-from app.planning_adapter import run_planning_pipeline
+from app.planning_adapter import run_planning_pipeline, create_planning_llm
+from app.mcp_lookup_adapter import create_hours_lookup, create_travel_lookup
+from app.verification_adapter import run_verification_pipeline
 from app.revision import RevisionNotAvailableError, revise_itinerary
 from app.verification_loop import verify_with_retries
 from planning.research import ResearchBundle
@@ -181,7 +183,16 @@ def orchestrate_trip(
 
         print("2. ResearchBundle received")
 
-        planning_result = run_planning_pipeline(research_bundle)
+        destination = research_bundle.trip.destination
+        hours_lookup = create_hours_lookup(destination)
+        travel_lookup = create_travel_lookup(destination, mode="foot")
+        llm = create_planning_llm()
+
+        planning_result = run_planning_pipeline(
+            research_bundle,
+            llm=llm,
+            travel_lookup=travel_lookup,
+        )
 
         print("3. Real Planning Pipeline finished")
 
@@ -196,15 +207,42 @@ def orchestrate_trip(
                 ),
             }
 
-        # The real verifier is not connected yet.
-        # Never approve a real itinerary using the mock verifier.
+        verification_result = run_verification_pipeline(
+            itinerary=planning_result["itinerary_model"],
+            research_bundle=research_bundle,
+            llm=llm,
+            budget_report=planning_result["budget_report"],
+            planner_report=planning_result["planner_report"],
+            hours_lookup=hours_lookup,
+            travel_lookup=travel_lookup,
+        )
+
+        final_model = verification_result.get("itinerary_model")
+        final_itinerary = (
+            final_model.to_trip_store()
+            if final_model is not None
+            else itinerary
+        )
+
+        if verification_result.get("verified") is True:
+            return {
+                "status": "verified",
+                "message": (
+                    "The itinerary passed real verification "
+                    "and is awaiting user approval."
+                ),
+                "itinerary": final_itinerary,
+                "verification_result": verification_result,
+            }
+
         return {
             "status": "verification_required",
-            "message": (
-                "The itinerary was generated successfully, "
-                "but real verification is required before approval."
+            "message": verification_result.get(
+                "message",
+                "The itinerary could not be fully verified.",
             ),
-            "itinerary": itinerary,
+            "itinerary": final_itinerary,
+            "verification_result": verification_result,
         }
 
        # STEP 9: Safety fallback

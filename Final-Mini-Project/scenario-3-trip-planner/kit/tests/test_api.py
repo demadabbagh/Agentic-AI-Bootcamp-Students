@@ -1,3 +1,5 @@
+import json
+import hashlib
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -43,6 +45,14 @@ def make_pending_trip(session_id="test-session"):
             "action_id": "correct-id",
             "type": "save_trip",
             "verification_status": "verified",
+            "itinerary_hash": hashlib.sha256(
+                json.dumps(
+                    itinerary,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    ensure_ascii=False,
+                ).encode("utf-8")
+            ).hexdigest(),
             "payload": {"itinerary": itinerary},
         },
     }
@@ -280,3 +290,28 @@ def test_unverified_trip_cannot_be_saved():
     assert response.status_code == 403
     save_mock.assert_not_called()
     assert sessions["test-session"]["pending_action"] is not None
+
+
+def test_approval_without_itinerary_hash_is_rejected():
+    """A pending action without an itinerary hash must not be saved."""
+    from unittest.mock import patch
+
+    make_pending_trip(session_id="missing-hash-session")
+
+    session = sessions["missing-hash-session"]
+    session["pending_action"].pop("itinerary_hash", None)
+
+    with patch(
+        "app.main.save_trip_to_store"
+    ) as save_mock:
+        response = client.post(
+            "/api/approve",
+            json={
+                "session_id": "missing-hash-session",
+                "action_id": "correct-id",
+                "approved": True,
+            },
+        )
+
+    assert response.status_code == 403
+    save_mock.assert_not_called()
