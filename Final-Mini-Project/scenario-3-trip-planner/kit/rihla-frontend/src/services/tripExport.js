@@ -1,5 +1,5 @@
 import { buildTripView, formatDate } from './itineraryAdapter.js'
-import { getVerificationState } from './tripResult.js'
+import { budgetNotes, getVerificationState, summarizeVerification } from './tripResult.js'
 
 // The decision line shown on the dashboard and in the PDF. Backend approval
 // and a local draft acceptance are different facts and are never merged.
@@ -17,14 +17,21 @@ export function resultWarnings(result) {
   if (uncovered.length) {
     warnings.push(`Nothing ${coverage.food_focused ? '' : 'beyond meals '}is planned on: ${uncovered.map(formatDate).join(', ')}.`)
   }
-  return warnings
+  const budget = budgetNotes(result?.budget)
+  if (budget?.statusText) warnings.push(budget.statusText)
+  warnings.push(...(budget?.priceDoubts || []))
+  const verification = summarizeVerification(result?.verification)
+  for (const finding of [...(verification?.problems || []), ...(verification?.unverifiable || [])]) {
+    warnings.push(`Verification: ${finding.text}`)
+  }
+  return [...new Set(warnings)]
 }
 
 // Everything buildTripPdf needs, from a backend result (live or saved).
 export function pdfInputFromResult(result, { sampleLabel = null, marks = {}, now = new Date() } = {}) {
   const verification = getVerificationState(result)
   return {
-    view: buildTripView(result.itinerary),
+    view: buildTripView(result.itinerary, result.summary),
     verificationLabel: sampleLabel ? 'Not verified (sample)' : verification.label,
     verificationDetail: verification.detail,
     decisionLabel: decisionLabel(marks),

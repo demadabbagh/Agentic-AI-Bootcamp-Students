@@ -42,16 +42,22 @@ function validationMessage(detail) {
   return messages.length ? `Please check the trip details: ${messages.join(' ')}` : null
 }
 
-const STATUS_MESSAGES = {
-  402: 'The AI provider declined the request (payment required). No trip was generated.',
-  503: 'The trip planning service is temporarily unavailable. No trip was generated, please try again later.',
+// What did not happen, said in every error: a new trip was not generated, or the current one was not changed.
+const NEW_TRIP = { outcome: 'No trip was generated.', timedOut: 'so no trip is shown' }
+const REVISION = { outcome: 'Your trip was not changed.', timedOut: 'so your trip was not changed' }
+
+function statusMessage(status, outcome) {
+  if (status === 402) return `The AI provider declined the request (payment required). ${outcome}`
+  if (status === 503) return `The trip planning service is temporarily unavailable. ${outcome} Please try again later.`
+  return null
 }
 
 // Measured full runs take 75-85 s (sequential LLM stages); stop waiting well
 // after that so a hung backend or provider never leaves the page spinning forever.
 export const TRIP_REQUEST_TIMEOUT_MS = 5 * 60 * 1000
 
-export async function createTrip(trip, sessionId, timeoutMs = TRIP_REQUEST_TIMEOUT_MS) {
+// POST /api/chat with a time limit; throws an Error whose message is safe to show.
+async function postChat(body, timeoutMs, { outcome, timedOut }) {
   let response
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
@@ -62,17 +68,13 @@ export async function createTrip(trip, sessionId, timeoutMs = TRIP_REQUEST_TIMEO
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        session_id: sessionId,
-        message: buildTripMessage(trip),
-        trip: buildTripForm(trip),
-      }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     })
   } catch {
     if (controller.signal.aborted) {
       throw new Error(
-        `The planner did not answer within ${Math.round(timeoutMs / 60000)} minutes, so no trip is shown. `
+        `The planner did not answer within ${Math.round(timeoutMs / 60000)} minutes, ${timedOut}. `
         + 'The server may still be working on it; please try again in a moment.'
       )
     }
@@ -82,7 +84,7 @@ export async function createTrip(trip, sessionId, timeoutMs = TRIP_REQUEST_TIMEO
   }
 
   if (!response.ok) {
-    let detail = `Request failed (${response.status}). No trip was generated.`
+    let detail = `Request failed (${response.status}). ${outcome}`
 
     try {
       const error = await response.json()
@@ -94,12 +96,32 @@ export async function createTrip(trip, sessionId, timeoutMs = TRIP_REQUEST_TIMEO
       // Keep the HTTP error message.
     }
 
-    throw new Error(STATUS_MESSAGES[response.status] || detail)
+    throw new Error(statusMessage(response.status, outcome) || detail)
   }
 
   try {
     return await response.json()
   } catch {
-    throw new Error('The planner returned an unreadable response. No trip was generated.')
+    throw new Error(`The planner returned an unreadable response. ${outcome}`)
   }
+}
+
+export async function createTrip(trip, sessionId, timeoutMs = TRIP_REQUEST_TIMEOUT_MS) {
+  return postChat(
+    { session_id: sessionId, message: buildTripMessage(trip), trip: buildTripForm(trip) },
+    timeoutMs,
+    NEW_TRIP,
+  )
+}
+
+// A change to the current trip, in the traveller's words, in the same session: the backend keeps the session's
+// itinerary and decides what to do (app/orchestrator.py, intent "revise_trip"). No trip form is sent, so the
+// request is read as a change, not as a new trip.
+export async function reviseTrip(sessionId, message, timeoutMs = TRIP_REQUEST_TIMEOUT_MS) {
+  const text = String(message || '').trim()
+  if (!sessionId) {
+    throw new Error('This trip has no planning session on the server, so it cannot be changed. Plan it again from the home page.')
+  }
+  if (!text) throw new Error('Type the change you would like to make.')
+  return postChat({ session_id: sessionId, message: text }, timeoutMs, REVISION)
 }

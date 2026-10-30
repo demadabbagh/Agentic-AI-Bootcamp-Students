@@ -22,9 +22,18 @@ const STATUS_MESSAGES = {
   422: 'The approval request was incomplete.',
 }
 
-// Returns { status: 'approved' | 'rejected', message, trip? } or throws an
-// Error whose message is safe to show. Never reports approval without the
-// backend saying "approved".
+// The trip ID the Trip Store returned, from either answer shape; never made up here.
+function savedTripId(body) {
+  const id = body?.result?.trip_id ?? body?.trip?.trip_id ?? body?.trip?.id
+  return typeof id === 'string' && id ? id : null
+}
+
+// Returns { status: 'approved' | 'rejected', message, trip?, tripId } or throws an
+// Error whose message is safe to show. Never reports approval without the backend confirming it.
+// Two answer shapes are understood:
+// - today's app/main.py: { status: 'approved' | 'rejected', message, trip: { trip_id } }
+// - the bootcamp contract (common/CONTRACT.md): a ChatResponse { reply, result: { trip_id } | null }, where
+//   approval counts only with a result.trip_id, and approved:false with no result is a rejection.
 export async function sendApproval({ sessionId, actionId, approved }, fetchImpl = globalThis.fetch) {
   let response
   try {
@@ -55,10 +64,17 @@ export async function sendApproval({ sessionId, actionId, approved }, fetchImpl 
   }
 
   if (body?.status === 'approved') {
-    return { status: 'approved', message: body.message || 'Trip saved successfully.', trip: body.trip ?? null }
+    return { status: 'approved', message: body.message || 'Trip saved successfully.', trip: body.trip ?? null, tripId: savedTripId(body) }
   }
   if (body?.status === 'rejected') {
-    return { status: 'rejected', message: body.message || 'Trip was not saved.' }
+    return { status: 'rejected', message: body.message || 'Trip was not saved.', tripId: null }
+  }
+  if (body && typeof body === 'object' && 'reply' in body) {
+    const reply = typeof body.reply === 'string' ? body.reply : ''
+    const tripId = savedTripId(body)
+    if (approved && tripId) return { status: 'approved', message: reply || 'Trip saved successfully.', trip: body.result, tripId }
+    if (!approved && !tripId) return { status: 'rejected', message: reply || 'Trip was not saved.', tripId: null }
+    if (approved) throw new Error(reply || 'The server did not save the trip. Nothing was approved.')
   }
   throw new Error('The server gave an unexpected approval answer. Nothing is shown as approved.')
 }

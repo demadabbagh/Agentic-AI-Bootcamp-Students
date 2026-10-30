@@ -1,16 +1,42 @@
-# React + Vite
+# Rihla frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The traveller's web page for the Rihla trip planner: the trip form, the itinerary dashboard (verification,
+budget, approval, PDF) and My Trips. It talks to the Rihla backend (`app/main.py`) through `/api/chat` and
+`/api/approve`; Vite proxies `/api` to `http://127.0.0.1:8000` (`RIHLA_BACKEND_URL` overrides it).
 
-Currently, two official plugins are available:
+## Run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```powershell
+npm install
+npm run dev          # http://localhost:5173, with the backend running on :8000
+```
 
-## React Compiler
+Start the travel API (`uvicorn services.travel_api:app --port 8103`) and the backend
+(`uvicorn app.main:app --port 8000`) first; see `../README.md`.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Settings (`.env.local`, not committed)
 
-## Expanding the ESLint configuration
+| Variable | Default | Effect |
+|---|---|---|
+| `VITE_ENABLE_LIVE_AI` | off | `true` lets the form call `/api/chat`. Off, the form explains that live planning is turned off and offers the sample trip, so no OpenRouter credits are spent by accident. |
+| `VITE_ENABLE_REVISION_CHAT` | off | `true` sends dashboard chat messages to `/api/chat` as changes to the current trip. Leave it off until the backend's revision step is connected: today the backend answers `revision_not_supported` and clears the pending approval on every chat call. |
+| `RIHLA_BACKEND_URL` | `http://127.0.0.1:8000` | Where the dev server proxies `/api` (read by `vite.config.js`, not by the page). |
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## What the page promises
+
+- A trip is shown only when the backend returned a complete itinerary (`services/tripResult.js`); a failed or
+  timed-out request (5 minutes) never shows as a trip.
+- "Verified" and the Approve button appear only for a server `save_trip` pending action with
+  `verification_status: "verified"`. A plan that passed only against recorded data is labelled as such.
+- Approval is shown as done only when the server returns a trip ID (`services/approval.js`).
+- An unknown price is "Price unknown", never "Free"; a price range is shown as a range.
+- Travel times between stops are route estimates (OpenStreetMap walking or driving), labelled as such.
+- My Trips is stored in this browser only (localStorage). Sample trips are labelled and cannot be approved.
+
+## Checks
+
+```powershell
+npm test             # node --test, no browser and no backend needed
+npm run lint
+npm run build
+```

@@ -6,6 +6,7 @@ The full raw result goes to the log, and only the log becomes the ResearchBundle
 from __future__ import annotations
 
 import json
+import time
 from typing import Any, Callable, Type
 
 from crewai.tools import BaseTool
@@ -17,15 +18,16 @@ Caller = Callable[[str, dict], dict]
 
 
 def recorded_call(log: list, caller: Caller, name: str, args: dict) -> dict:
-    """Call one tool, append {tool, args, result} to the log, return the raw result."""
+    """Call one tool, append {tool, args, result, ms} to the log, return the raw result."""
     clean = {k: v for k, v in args.items() if v is not None}
+    started = time.perf_counter()
     try:
         result = caller(name, clean)
     except ToolNotAllowed:
         raise
     except Exception as exc:  # a crash is a tool failure, never a reason to guess
         result = {"ok": False, "error": {"code": "tool_crashed", "message": str(exc)[:200]}}
-    log.append({"tool": name, "args": clean, "result": result})
+    log.append({"tool": name, "args": clean, "result": result, "ms": round((time.perf_counter() - started) * 1000)})
     return result
 
 

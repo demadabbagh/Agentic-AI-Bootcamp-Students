@@ -1,4 +1,6 @@
-export const MAX_TRIP_DAYS = 30
+// The backend refuses longer trips (app/schemas.py MAX_TRIP_DAYS = 21): stop them here, before the request,
+// instead of after the traveller has waited for a 422.
+export const MAX_TRIP_DAYS = 21
 export const MAX_TRAVELLERS = 20
 
 function isoToday(now) {

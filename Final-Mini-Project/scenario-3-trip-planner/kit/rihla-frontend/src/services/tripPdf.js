@@ -126,7 +126,10 @@ export function buildTripPdf(trip) {
       const details = [a.type, a.duration, price].filter(Boolean).join('  |  ')
       write(details, { size: 9, color: price === 'Price unknown' ? AMBER : MUTED, indent: 4, gap: 0.5 })
       if (a.notes) write(a.notes, { size: 8.5, color: MUTED, indent: 4, gap: 0.5 })
-      if (a.travel) write(a.travel, { size: 8.5, color: MUTED, indent: 4, gap: 0.5 })
+      if (a.travel) {
+        write(`${a.travel}${a.longWalk ? ' - a long walk; local transport may be faster' : ''}`,
+          { size: 8.5, color: a.longWalk ? AMBER : MUTED, indent: 4, gap: 0.5 })
+      }
       if (a.sourceUrl) write(`Source: ${a.sourceUrl}`, { size: 7.5, color: MUTED, indent: 4, gap: 0.5 })
       y += 1.5
     })

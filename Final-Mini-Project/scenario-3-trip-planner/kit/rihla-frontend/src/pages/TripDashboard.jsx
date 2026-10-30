@@ -1,11 +1,20 @@
 import { buildTripView, FALLBACK_IMAGE, formatDate, formatMoney } from '../services/itineraryAdapter'
-import { getVerificationState, isValidTripResult, summarizeBudget, summarizeDensity } from '../services/tripResult'
+import {
+  budgetNotes, getVerificationState, interpretRevision, isValidTripResult, summarizeBudget, summarizeDensity,
+  summarizeVerification,
+} from '../services/tripResult'
 import { getSavedTripMarks, isTripSaved, saveTrip } from '../services/savedTrips'
 import { approvalOptions, sendApproval } from '../services/approval'
 import { decisionLabel, pdfInputFromResult } from '../services/tripExport'
+import { reviseTrip } from '../services/tripApi'
 import { SAMPLE_HERO_IMAGE, SAMPLE_TRIP } from '../data/sampleTrip'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+
+// Sends chat messages to POST /api/chat as trip changes. Off by default: the backend has no revision agent
+// connected yet (it answers revision_not_supported), and every /api/chat call clears the pending approval.
+// Turn it on (VITE_ENABLE_REVISION_CHAT=true) once the backend revision path is in place.
+const REVISION_CHAT_ENABLED = import.meta.env.VITE_ENABLE_REVISION_CHAT === 'true'
 import {
   ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock3, ExternalLink, FlaskConical,
   MapPin, Send, ShieldAlert, ShieldCheck, Sparkles, TriangleAlert, Wallet,
@@ -83,15 +92,24 @@ function NoTrip() {
   )
 }
 
+// A new navigation (e.g. a revised plan) is a new page: its approval, decision and save state start fresh.
 export default function TripDashboard() {
   const location = useLocation()
+  return <TripDashboardView key={location.key} />
+}
+
+function TripDashboardView() {
+  const location = useLocation()
+  const navigate = useNavigate()
   const trip = location.state || {}
   const aiResult = trip.aiResult
   const isSample = trip.sample === true && !aiResult
   const isReal = isValidTripResult(aiResult)
   const sampleLabel = isReal && trip.sampleTrip === true ? trip.sampleLabel || 'Demo data' : null
 
-  const view = isReal ? buildTripView(aiResult.itinerary) : SAMPLE_TRIP
+  const view = isReal ? buildTripView(aiResult.itinerary, aiResult.summary) : SAMPLE_TRIP
+  const verificationDetails = isReal && !sampleLabel ? summarizeVerification(aiResult.verification) : null
+  const costNotes = isReal && !sampleLabel ? budgetNotes(aiResult.budget) : null
   const destination = view.destination
   const verification = isReal && !sampleLabel
     ? getVerificationState(aiResult)
@@ -126,6 +144,9 @@ export default function TripDashboard() {
   const [approvalNote, setApprovalNote] = useState('')
   const [rejected, setRejected] = useState(false)
   const [pdfError, setPdfError] = useState('')
+  // True after a chat message: the server dropped the approval it offered for this plan (app/main.py).
+  const [approvalStale, setApprovalStale] = useState(trip.approvalStale === true)
+  const [revising, setRevising] = useState(false)
   const options = isOwnTrip ? approvalOptions(aiResult) : { canApprove: false, canAcceptDraft: false }
 
   const saveWithMarks = (newMarks = {}) => {
@@ -163,7 +184,7 @@ export default function TripDashboard() {
           backendApproval: {
             status: 'approved',
             approvedAt: new Date().toISOString(),
-            tripId: answer.trip?.trip_id || answer.trip?.id || null,
+            tripId: answer.tripId,
           },
         }
         setMarks((current) => ({ ...current, ...newMarks }))
@@ -202,7 +223,7 @@ export default function TripDashboard() {
     }
   }
   const [message, setMessage] = useState('')
-  const [messages, setMessages] = useState(() => [
+  const [messages, setMessages] = useState(() => (Array.isArray(trip.chat) && trip.chat.length ? trip.chat : [
     {
       role: 'assistant',
       text: isSample
@@ -211,27 +232,56 @@ export default function TripDashboard() {
           ? `This ${destination} trip is a sample (${sampleLabel})`
           : `Your ${destination} itinerary is ready to review. Check the verification status and any warnings before relying on it.`,
     },
-  ])
+  ]))
 
   if (!isReal && !isSample) return <NoTrip />
 
   const day = view.days[Math.min(activeDay, view.days.length - 1)]
 
-  const sendMessage = (event) => {
-    event.preventDefault()
-    if (!message.trim()) return
+  // Why this trip cannot be changed from the chat right now, or null when it can.
+  const revisionBlocked = isSample || sampleLabel
+    ? 'Sample mode: the assistant is not connected.'
+    : !REVISION_CHAT_ENABLED
+      ? "Changing a trip from this chat isn't available yet: the server's revision step is not connected. "
+        + 'To change the trip, plan it again from the home page.'
+      : marks.backendApproval || marks.draftAcceptedAt || rejected
+        ? 'You have already decided on this plan, so it is not changed here. Plan a new trip to change it.'
+        : null
 
-    setMessages((previous) => [
-      ...previous,
-      { role: 'user', text: message },
-      {
-        role: 'assistant',
-        text: isSample || sampleLabel
-          ? 'Sample mode: the assistant is not connected.'
-          : "Changes from this chat aren't connected yet. To change the trip, plan it again from the home page.",
-      },
-    ])
+  const sendMessage = async (event) => {
+    event.preventDefault()
+    const text = message.trim()
+    if (!text || revising) return
     setMessage('')
+
+    if (revisionBlocked) {
+      setMessages((previous) => [...previous, { role: 'user', text }, { role: 'assistant', text: revisionBlocked }])
+      return
+    }
+
+    const history = [...messages, { role: 'user', text }]
+    setMessages([...history, { role: 'assistant', text: 'Asking the planner... this can take a minute or two.' }])
+    setRevising(true)
+    try {
+      const answer = interpretRevision(await reviseTrip(aiResult.session_id, text))
+      const chat = [...history, { role: 'assistant', text: answer.message }]
+      if (answer.kind === 'revised') {
+        if (saved) saveTrip(answer.result, trip) // the saved copy of this session follows the new plan
+        navigate('/trip', { replace: true, state: { ...trip, aiResult: answer.result, chat, approvalStale: false } })
+        return
+      }
+      setMessages(chat)
+      if (answer.approvalLost) setApprovalStale(true)
+    } catch (err) {
+      setMessages([...history, {
+        role: 'assistant',
+        text: err instanceof Error ? err.message : 'The change could not be made. Your trip was not changed.',
+      }])
+      // A request that reached the server may have cleared its pending approval: do not offer it again.
+      setApprovalStale(true)
+    } finally {
+      setRevising(false)
+    }
   }
 
   const BadgeIcon = verification.level === 'verified' ? ShieldCheck : verification.level === 'sample' ? FlaskConical : ShieldAlert
@@ -358,6 +408,39 @@ export default function TripDashboard() {
           >
             <p className="font-semibold">{verification.label}</p>
             <p className="mt-1">{verification.detail}</p>
+          </section>
+        )}
+
+        {/* PYTHON'S VERIFICATION FINDINGS, exactly as the backend grouped them */}
+        {verificationDetails && (
+          <section className="mb-6 rounded-[22px] border border-[#dce9ec] bg-white p-5 text-sm leading-6 text-[#456774]">
+            <p className="flex items-center gap-2 font-semibold text-[#1c3544]">
+              <ShieldCheck size={16} /> Verification checks
+            </p>
+            <p className="mt-1">
+              {verificationDetails.headline}
+              {verificationDetails.repaired ? ' The plan was repaired automatically before this check.' : ''}
+            </p>
+            {[
+              ['Problems found', verificationDetails.problems, 'text-red-700'],
+              ['Could not be checked', verificationDetails.unverifiable, 'text-amber-800'],
+              ['Good to know', verificationDetails.advice, 'text-[#456774]'],
+            ].filter(([, items]) => items.length > 0).map(([title, items, tone]) => (
+              <div key={title} className="mt-3">
+                <p className={`text-xs font-semibold uppercase tracking-wide ${tone}`}>
+                  {title} ({items.length})
+                </p>
+                <ul className={`mt-1 list-disc space-y-1 pl-5 ${tone}`}>
+                  {items.slice(0, 8).map((item, index) => (
+                    <li key={`${title}-${index}`}>
+                      {item.date ? `${formatDate(item.date)}: ` : ''}{item.text}
+                      {item.action && <span className="block text-xs opacity-80">{item.action}</span>}
+                    </li>
+                  ))}
+                </ul>
+                {items.length > 8 && <p className="mt-1 text-xs">and {items.length - 8} more.</p>}
+              </div>
+            ))}
           </section>
         )}
 
@@ -572,8 +655,9 @@ export default function TripDashboard() {
                         )}
                       </div>
                       {activity.travel && (
-                        <p className="mt-2 flex items-center gap-1 text-xs text-[#68818b]">
+                        <p className={`mt-2 flex items-center gap-1 text-xs ${activity.longWalk ? 'font-medium text-amber-700' : 'text-[#68818b]'}`}>
                           <Footprints size={12} /> {activity.travel}
+                          {activity.longWalk && ' · a long walk; local transport may be faster'}
                         </p>
                       )}
                     </div>
@@ -653,6 +737,30 @@ export default function TripDashboard() {
                   />
                 </div>
               )}
+              {costNotes && (
+                <div className="mt-5 space-y-3 border-t border-[#edf2f3] pt-4 text-xs leading-5 text-[#64848d]">
+                  {costNotes.statusText && <p className="font-semibold text-amber-800">{costNotes.statusText}</p>}
+                  {costNotes.confidence && (
+                    <p>
+                      <span className="font-semibold">Price confidence: {costNotes.confidence}.</span>{' '}
+                      {costNotes.confidenceBasis}
+                    </p>
+                  )}
+                  {costNotes.priceDoubts.length > 0 && (
+                    <div>
+                      <p className="font-semibold text-amber-800">Uncertain prices</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-4 text-amber-800">
+                        {costNotes.priceDoubts.map((line) => <li key={line}>{line}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {costNotes.suggestions.length > 0 && (
+                    <ul className="list-disc space-y-1 pl-4">
+                      {costNotes.suggestions.map((line) => <li key={line}>{line}</li>)}
+                    </ul>
+                  )}
+                </div>
+              )}
               <p className="mt-3 text-xs leading-5 text-[#91a3ab]">
                 {isSample ? 'Sample figures only, not real estimates.' : SCOPE_NOTE}
               </p>
@@ -687,17 +795,25 @@ export default function TripDashboard() {
                 ))}
               </div>
 
+              {revisionBlocked && (
+                <p className="border-t border-[#edf2f3] px-5 pt-3 text-xs leading-5 text-[#8297a0]">
+                  {isSample || sampleLabel ? 'Sample trip: the assistant is not connected.' : 'Trip changes from this chat are not available yet.'}
+                </p>
+              )}
               <form onSubmit={sendMessage} className="flex gap-2 border-t border-[#edf2f3] p-4">
                 <input
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
-                  placeholder="Ask for a change..."
-                  className="min-w-0 flex-1 rounded-xl bg-[#f1f7f8] px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#a9d7dc]"
+                  disabled={revising}
+                  maxLength={500}
+                  placeholder={revising ? 'Waiting for the planner...' : 'Ask for a change...'}
+                  className="min-w-0 flex-1 rounded-xl bg-[#f1f7f8] px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#a9d7dc] disabled:opacity-60"
                 />
                 <button
                   type="submit"
                   aria-label="Send message"
-                  className="rounded-xl bg-[#245c6a] p-3 text-white transition hover:bg-[#347989]"
+                  disabled={revising}
+                  className="rounded-xl bg-[#245c6a] p-3 text-white transition hover:bg-[#347989] disabled:cursor-wait disabled:opacity-60"
                 >
                   <Send size={18} />
                 </button>
@@ -728,6 +844,14 @@ export default function TripDashboard() {
                   The server confirmed approval and saved this trip
                   {marks.backendApproval.tripId ? ` (trip ${marks.backendApproval.tripId})` : ''}.
                 </p>
+              ) : options.canApprove && approvalStale && !rejected ? (
+                <div className="rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+                  <p className="font-semibold">This approval is no longer open on the server.</p>
+                  <p className="mt-1">
+                    Sending a chat message replaced the server&apos;s pending approval for this plan. Plan the trip
+                    again to get a plan you can approve.
+                  </p>
+                </div>
               ) : options.canApprove && !rejected ? (
                 <>
                   <p className="mb-4 text-sm leading-6 text-[#8297a0]">
@@ -759,7 +883,9 @@ export default function TripDashboard() {
                     <div className="mb-4 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-800">
                       <p className="font-semibold">Approval requires a verified itinerary.</p>
                       <p className="mt-1">
-                        The AI verifier did not pass this plan, so the server will not approve or save it.
+                        {verificationDetails?.state === 'supported_by_records'
+                          ? 'Every check passed, but only against recorded data, so the server will not approve or save it.'
+                          : 'The verifier did not pass this plan, so the server will not approve or save it.'}
                         {summary?.limitations?.length ? ' Resolve the warnings listed above, then plan the trip again.' : ''}
                       </p>
                     </div>

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createTrip } from './services/tripApi'
 import { validateTripResult } from './services/tripResult'
 import { validateTripForm } from './services/tripForm'
@@ -33,6 +33,8 @@ export default function App() {
   const [error, setError] = useState('')
   const [elapsed, setElapsed] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
+  // Set synchronously: a second submit before React re-renders (double Enter, double click) sees it at once.
+  const requestInFlight = useRef(false)
 
   // A real clock while the backend works (it reports no stages yet): never an invented progress bar.
   useEffect(() => {
@@ -44,7 +46,7 @@ export default function App() {
 
   const handleSubmit = async (event) => {
     event.preventDefault()
-    if (isLoading) return // one request at a time
+    if (isLoading || requestInFlight.current) return // one request at a time
     setError('')
 
     const trip = {
@@ -71,6 +73,7 @@ export default function App() {
       return
     }
 
+    requestInFlight.current = true
     setElapsed(0)
     setIsLoading(true)
 
@@ -88,6 +91,7 @@ export default function App() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to plan your trip.')
     } finally {
+      requestInFlight.current = false
       setIsLoading(false)
     }
   }

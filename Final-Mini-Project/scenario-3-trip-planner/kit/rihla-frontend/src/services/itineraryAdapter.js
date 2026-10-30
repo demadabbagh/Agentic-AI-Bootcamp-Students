@@ -13,14 +13,23 @@ export function formatDate(value) {
   })
 }
 
+// Intl throws a RangeError for a code it does not know: show the number with the code instead of crashing.
+function currencyText(value, currency) {
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency || 'USD',
+      maximumFractionDigits: 2,
+    }).format(value)
+  } catch {
+    return `${value.toFixed(2)} ${String(currency || '').toUpperCase()}`.trim()
+  }
+}
+
 export function formatMoney(value, currency) {
   if (!Number.isFinite(value)) return 'Not specified'
 
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency || 'USD',
-    maximumFractionDigits: 2,
-  }).format(value)
+  return currencyText(value, currency)
 }
 
 function formatTime(value) {
@@ -58,11 +67,7 @@ function formatPrice(value, currency) {
   if (!Number.isFinite(value)) return 'Price unknown'
   if (value === 0) return 'Free'
 
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency || 'USD',
-    maximumFractionDigits: 2,
-  }).format(value)
+  return currencyText(value, currency)
 }
 
 // Wikivoyage listing kinds (planning/models.py Activity.kind), when the backend sends them.
@@ -91,13 +96,40 @@ export function mapSearchUrl(name, destination) {
   return `https://www.openstreetmap.org/search?query=${encodeURIComponent(query)}`
 }
 
-export function describeTravel(minutes) {
+// The walk the plan treats as long (RIHLA_MAX_WALK_MINUTES, 30 by default in app/mcp_lookup_adapter.py).
+export const LONG_WALK_MINUTES = 30
+
+// Minutes come from the travel_time tool (OpenStreetMap routing): a route estimate, never a timetable.
+export function describeTravel(minutes, mode) {
   if (!Number.isInteger(minutes)) return null
   if (minutes === 0) return 'Same place as the previous stop'
+  if (mode === 'foot') return `About ${minutes} min walk from the previous stop (estimated walking route)`
+  if (mode === 'driving') {
+    return `About ${minutes} min by car from the previous stop (estimated driving route, traffic not included)`
+  }
   return `About ${minutes} min from the previous stop`
 }
 
-export function normalizeItinerary(itinerary) {
+// summary.days (app/orchestrator.py traveller_summary) carries what the Trip Store itinerary leaves out: the
+// listing kind and the measured leg from the previous stop. Used only when it is about the same activity.
+function summaryActivity(summary, dayIndex, date, activityIndex, name) {
+  const day = summary?.days?.[dayIndex]
+  if (!day || day.date !== date) return null
+  const activity = day.activities?.[activityIndex]
+  return activity && activity.name === name ? activity : null
+}
+
+// The leg to this stop: from the summary (travel_minutes + travel_mode; older results only have walk_minutes),
+// else from the activity itself.
+function travelLeg(activity, extra) {
+  if (extra && Number.isInteger(extra.travel_minutes)) {
+    return { minutes: extra.travel_minutes, mode: extra.travel_mode || null }
+  }
+  if (extra && Number.isInteger(extra.walk_minutes)) return { minutes: extra.walk_minutes, mode: 'foot' }
+  return { minutes: activity.travel_minutes_from_previous, mode: activity.travel_mode_from_previous || null }
+}
+
+export function normalizeItinerary(itinerary, summary = null) {
   if (!itinerary || !Array.isArray(itinerary.days)) return []
 
   const currency = itinerary.currency || 'USD'
@@ -108,27 +140,33 @@ export function normalizeItinerary(itinerary) {
       isoDate: day.date,
       date: formatDate(day.date),
       title: `Explore ${itinerary.destination || 'your destination'}`,
-      activities: (day.activities || []).map((activity) => ({
-        name: activity.name,
-        time: formatTime(activity.start_time),
-        duration: formatDuration(activity.start_time, activity.end_time),
-        durationIsEstimate: activity.duration_is_estimate !== false,
-        price: describePrice(activity, currency),
-        priceUnknown: !Number.isFinite(activity.estimated_cost) && activity.cost_status !== 'free',
-        type: KIND_LABELS[activity.kind] || 'Travel experience',
-        image: FALLBACK_IMAGE,
-        notes: activity.notes || '',
-        sourceUrl: activity.source_url || null,
-        mapUrl: mapSearchUrl(activity.name, itinerary.destination),
-        travel: describeTravel(activity.travel_minutes_from_previous),
-      })),
+      activities: (day.activities || []).map((activity, position) => {
+        const extra = summaryActivity(summary, index, day.date, position, activity.name)
+        const leg = travelLeg(activity, extra)
+        return {
+          name: activity.name || 'Unnamed activity',
+          time: formatTime(activity.start_time),
+          duration: formatDuration(activity.start_time, activity.end_time),
+          durationIsEstimate: activity.duration_is_estimate !== false,
+          price: describePrice(activity, currency),
+          priceUnknown: !Number.isFinite(activity.estimated_cost) && activity.cost_status !== 'free',
+          type: KIND_LABELS[activity.kind || extra?.kind] || 'Travel experience',
+          image: FALLBACK_IMAGE,
+          notes: activity.notes || '',
+          sourceUrl: activity.source_url || null,
+          mapUrl: mapSearchUrl(activity.name, itinerary.destination),
+          travel: describeTravel(leg.minutes, leg.mode),
+          longWalk: leg.mode === 'foot' && Number.isInteger(leg.minutes) && leg.minutes > LONG_WALK_MINUTES,
+        }
+      }),
     }
   })
 }
 
 // Everything the Dashboard shows about a real trip, taken from the
 // backend itinerary (Trip Store shape) rather than from form input.
-export function buildTripView(itinerary) {
+// `summary` is the result's summary block, when the backend sent one.
+export function buildTripView(itinerary, summary = null) {
   const days = itinerary.days
 
   return {
@@ -143,6 +181,6 @@ export function buildTripView(itinerary) {
       (count, day) => count + (day.activities || []).filter((a) => !Number.isFinite(a.estimated_cost)).length,
       0
     ),
-    days: normalizeItinerary(itinerary),
+    days: normalizeItinerary(itinerary, summary),
   }
 }

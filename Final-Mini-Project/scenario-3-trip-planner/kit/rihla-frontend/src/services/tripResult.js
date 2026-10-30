@@ -59,6 +59,23 @@ export function isValidTripResult(result) {
   }
 }
 
+// The backend's answer to a change request (reviseTrip), as the dashboard should treat it.
+// - "revised": a complete new plan that passed the same checks as a first plan; it replaces the shown one.
+// - "unchanged": anything else (revision_not_supported, needs_clarification, needs_revision, ...); the shown
+//   plan stays, with the backend's own message.
+// approvalLost is always true: app/main.py clears the session's pending approval on EVERY /api/chat call, so
+// the approval offered for the plan shown before the message no longer exists on the server.
+export function interpretRevision(response) {
+  if (isValidTripResult(response)) {
+    return { kind: 'revised', result: response, message: response.message || 'The planner returned an updated plan.', approvalLost: true }
+  }
+  const status = response && typeof response === 'object' ? response.status || null : null
+  const message = response && typeof response.message === 'string' && response.message
+    ? response.message
+    : 'The planner did not return a changed plan.'
+  return { kind: 'unchanged', status, message, approvalLost: true }
+}
+
 // Verification state comes only from the backend's verdict: the backend
 // issues a save_trip pending_action solely when verification passed.
 export function getVerificationState(result) {
@@ -76,10 +93,67 @@ export function getVerificationState(result) {
     }
   }
 
+  // Passing every check on recorded (cached) data is not live verification: the server will not approve it.
+  if (result?.verification?.state === 'supported_by_records') {
+    return {
+      level: 'unverified',
+      label: 'Not verified · Checked against recorded data only',
+      detail: result?.message || 'Every check passed, but only against recorded data, not live sources.',
+    }
+  }
+
   return {
     level: 'unverified',
     label: 'Not verified',
     detail: result?.message || 'This itinerary could not be fully verified. Check details before relying on it.',
+  }
+}
+
+const VERIFICATION_HEADLINES = {
+  confirmed_valid: 'Every check passed on live data.',
+  supported_by_records:
+    'Every check passed, but only against recorded data. The server approves only plans checked against live sources.',
+  confirmed_problem: 'Verification found problems that could not be repaired automatically.',
+  unverifiable: 'Some facts in this plan could not be checked.',
+}
+
+// The backend's verification block (app/orchestrator.py verification_summary): Python's verdict and findings,
+// grouped the way the backend labels them. Nothing is added or upgraded here.
+export function summarizeVerification(verification) {
+  if (!verification || typeof verification !== 'object') return null
+  const findings = Array.isArray(verification.findings) ? verification.findings : []
+  const group = (state) => findings
+    .filter((f) => f && f.state === state && typeof f.explanation === 'string' && f.explanation)
+    .map((f) => ({ text: f.explanation, action: f.recommended_action || null, date: f.date || null }))
+  return {
+    state: verification.state || null,
+    headline: VERIFICATION_HEADLINES[verification.state] || 'Verification result received.',
+    evidence: verification.evidence_basis || null,
+    problems: group('confirmed_problem'),
+    unverifiable: group('unverifiable'),
+    advice: group('advice'),
+    repaired: Boolean(verification.revision?.attempts),
+  }
+}
+
+// What the Budget Analyst says about its own numbers (planning/budget_analyst.py budget_breakdown + warnings):
+// how complete the priced picture is, price ranges and per-person doubts, and its suggestions.
+const PRICE_DOUBT = /sources disagree|the listing gives a range|per person or per group/i
+
+export function budgetNotes(budget) {
+  if (!budget || typeof budget !== 'object') return null
+  const warnings = Array.isArray(budget.warnings) ? budget.warnings.filter((w) => typeof w === 'string') : []
+  const statusText = {
+    over_budget: 'The known costs alone are over your budget.',
+    infeasible: 'Your budget cannot cover the places you asked for.',
+    undetermined: 'Whether the plan fits your budget cannot be confirmed: some prices are unknown.',
+  }[budget.status] || null
+  return {
+    confidence: ['low', 'medium', 'high'].includes(budget.confidence) ? budget.confidence : null,
+    confidenceBasis: typeof budget.confidence_basis === 'string' ? budget.confidence_basis : null,
+    statusText,
+    priceDoubts: warnings.filter((w) => PRICE_DOUBT.test(w)),
+    suggestions: Array.isArray(budget.suggestions) ? budget.suggestions.filter((s) => typeof s === 'string') : [],
   }
 }
 
