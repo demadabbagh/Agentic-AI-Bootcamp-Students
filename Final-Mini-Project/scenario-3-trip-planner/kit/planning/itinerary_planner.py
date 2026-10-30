@@ -37,17 +37,18 @@ from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, ValidationError
 from .budget import BudgetSummary, summarize
 from .budget_analyst import _MONEY, _REACT_ACTION, BudgetReport, Reason, _data_text, _json, fold
 from .models import DayPlan, IsoDate, Itinerary
-from .plan_quality import QualityIssue, QualityRules, assess_quality
+from .plan_quality import QualityIssue, QualityRules, assess_quality, daily_targets
 from .research import SCHEMA_VERSION, ResearchBundle
 from .schedule import (HoursStatus, ScheduleRules, ScheduledStop, Stop, TravelLookup, TravelStatus, TravelTimes,
                        TripSchedule, activity_fields, hours_on, schedule_day, schedule_trip, trip_dates, validate_day)
 
 PlannerStatus = Literal["complete", "partial", "infeasible"]
 
-MAX_ITER = 8  # agent steps per attempt: a check_day per day, a revision or two, and the answer
+MAX_ITER = 5  # agent steps per attempt: a few check_day rounds (Python's proposal is already checked), the answer
 MAX_RPM = 20
 GUARDRAIL_RETRIES = 2
-DEFAULT_MAX_LOOKUPS = 20  # real travel_time calls per planning request (cached pairs are free)
+DEFAULT_MAX_LOOKUPS = 40  # real travel_time calls per planning request (cached pairs are free): ~18 legs for a
+# six-day plan, plus a few after a measured long walk is avoided
 MAX_PLACES_PER_DAY = 12
 _CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b")  # a clock time in the agent's prose: times belong to Python
 NOT_VERIFIED = ("Times are planning estimates from the listed opening hours and walking times; the plan has not "
@@ -92,6 +93,10 @@ class PlanningContext:
         self.attempts = 0  # answers the guardrail has seen (the first, then one per retry)
         self.suppressed_notes: list[str] = []  # the agent's notes about an answer Python then repaired
         self.repair_compared = 0  # combinations of the agent's own placements the last repair compared
+        self.repair_runs = 0  # duplicate repairs attempted (one per answer that only had duplicates)
+        self.repair_ms = 0  # time spent ranking and validating those repairs
+        self.proposal: DayAssignment | None = None  # Python's own plan (day_balance.propose), the agent's start
+        self.decided_by: str = "agent"  # agent | python (the agent's plan scored worse) | python_fallback
         places = {p.place_id: p for p in bundle.places}
         self.districts: dict[str, str | None] = {}
         self.stops: dict[str, Stop] = {}  # BudgetReport.selected, in its order: the only places that may be planned
@@ -477,27 +482,45 @@ def make_guardrail(ctx: PlanningContext):
             ctx.rejections.append({"parse_error": True, "problems": {}})
             return False, (f"Your answer is not a valid DayAssignment ({exc}). {ONE_TIME_RULE} "
                            "Answer again with the JSON only.")
+        from .day_balance import complete, rebalance, score
         problems = assignment_problems(assignment, ctx)
         repairs: list[str] = []
         original = assignment
-        if problems and _repairable(problems):
+        started = time.perf_counter()
+        if problems and _repairable(problems):  # duplicates only: keep one of the agent's own placements
             fixed = repair_duplicates(assignment, ctx)
+            ctx.repair_runs += 1
             if fixed is not None and not assignment_problems(fixed[0], ctx):
                 (assignment, repairs), problems = fixed, []
-        if problems:
+        if problems:  # anything else Python can fix: wrong dates, unknown ids, closed days, missing places
             kinds: dict[str, int] = {}
             for p in problems:
                 kinds[p.kind] = kinds.get(p.kind, 0) + 1
-            ctx.rejections.append({"parse_error": False, "problems": kinds,
+            ctx.rejections.append({"parse_error": False, "problems": kinds, "repaired_by_python": True,
                                    "duplicated_ids": sorted(p.place_id for p in problems if p.kind == "duplicate")})
+            assignment, more = complete(assignment, ctx)
+            repairs += more
+            problems = assignment_problems(assignment, ctx)
+        if problems:  # Python could not make it valid (should not happen): the agent tries again
+            ctx.repair_ms += round((time.perf_counter() - started) * 1000)
             return False, feedback(problems)
-        # Valid. Quality: an empty day Python could fill from the planned places goes back once more, unless this
-        # is the last attempt (then it is accepted and the finding is reported, never hidden).
-        empty = [q for q in plan_quality(assignment, ctx)[1] if q.code == "empty_day" and q.avoidable]
-        if empty and ctx.attempts <= GUARDRAIL_RETRIES:
-            ctx.rejections.append({"parse_error": False, "problems": {"empty_day": len(empty)},
-                                   "repaired": bool(repairs)})
-            return False, quality_feedback(empty, assignment, ctx, repaired=bool(repairs))
+        # Valid. Quality, in Python: fill an avoidable empty or thin day, order each day to walk less.
+        valid = assignment
+        assignment, more = rebalance(valid, ctx)
+        if assignment_problems(assignment, ctx):  # a quality change must never break validity: keep the valid one
+            assignment = valid
+        else:
+            repairs += more
+        # The agent's plan is used unless Python's own scores clearly better (places left out, empty or thin
+        # days, long walks, then walking time with a 15% allowance): the agent's choices win close calls.
+        if ctx.proposal is not None and not assignment_problems(ctx.proposal, ctx):
+            mine, theirs = score(assignment, ctx), score(ctx.proposal, ctx)
+            if mine[:4] > theirs[:4] or (mine[:4] == theirs[:4] and mine[4] > theirs[4] * 1.15 + 10):
+                ctx.decided_by = "python"
+                repairs.append("Python's own plan was used: it scored better than the planner's (fewer places "
+                               "left out, empty or thin days, or long walks, or clearly less walking)")
+                assignment = ctx.proposal
+        ctx.repair_ms += round((time.perf_counter() - started) * 1000)
         ctx.repairs.extend(repairs)
         if repairs:  # written about the answer before the repair: not shown
             ctx.suppressed_notes.extend(original.notes)
@@ -627,6 +650,14 @@ Rules:
 6. Call check_day with a date and its ordered ids to see Python's schedule. Fix problems by reordering, or by
    moving a place (delete it from the old date).
 7. You choose only dates and order. Never write times, durations, travel minutes or prices.
+8. Day density: each date in the trip context has "suggested_non_meal_places" (lighter arrival and departure
+   days). Give a full day two or three non-meal places when there are enough and check_day fits them, plus a
+   restaurant where a meal fits. There are {place_count} places for {days} dates: with fewer places than the
+   suggestions, some dates stay light. That is correct. NEVER repeat a place to fill a date.
+9. "python_proposal" in the trip context is a complete plan Python already built and checked: nearby places
+   grouped on one date, each date in a short walking order, a restaurant at a meal time. Start from it. Change
+   it only where that serves the traveller better (their interests, a better date for a place), and call
+   check_day only for the dates you change. Returning it unchanged is a good answer.
 
 Example with made-up ids (each id appears once):
 {"days": [{"date": "2030-01-01", "place_ids": ["id-a", "id-c"], "reason": "Same district"}, {"date": "2030-01-02", "place_ids": ["id-b"], "reason": "Closed on the first day"}], "unscheduled": [{"place_id": "id-d", "reason": "Closed on every trip date"}], "notes": []}
@@ -648,12 +679,16 @@ TASK_EXPECTED_OUTPUT = ("A DayAssignment: one entry per trip date with the order
 def prompt_inputs(ctx: PlanningContext) -> dict[str, str]:
     """The kickoff inputs: dates, rules and each selected place's facts per date, as JSON data blocks."""
     trip = ctx.trip
+    targets = daily_targets(len(ctx.dates))
     context = {"destination": _data_text(trip.destination, 60), "travellers": trip.travellers,
-               "dates": [{"date": str(d), "weekday": f"{d:%a}"} for d in ctx.dates],
+               "dates": [{"date": str(d), "weekday": f"{d:%a}", "suggested_non_meal_places": t}
+                         for d, t in zip(ctx.dates, targets)],
                "planning_day": f"{ctx.rules.day_start}-{ctx.rules.day_end}",
                "max_walk_minutes": ctx.rules.max_walk_minutes,
                "interests": [_data_text(i, 40) for i in trip.interests[:10]],
                "budget_style": _data_text(trip.budget_style, 20)}
+    if ctx.proposal is not None:
+        context["python_proposal"] = {str(d.date): d.place_ids for d in ctx.proposal.days}
     rows = []
     for pid, stop in ctx.stops.items():
         hours = {}
@@ -728,12 +763,14 @@ class PlannerRun(BaseModel):
     tool_calls: list[dict] = Field(default_factory=list)  # check_day calls, logged by the tool itself
     agent_trace: list[dict] = Field(default_factory=list)  # planner_trace() of CrewAI's messages (final attempt)
     llm_usage: dict = Field(default_factory=dict)
+    crew_ms: int | None = None
 
 
 def decide_with_crew(ctx: PlanningContext, llm: BaseLLM | str) -> PlannerRun:
     tool = CheckDayTool(ctx)
     agent = build_planner_agent(llm, tool)
     crew = Crew(agents=[agent], tasks=[build_planner_task(agent, ctx)], process=Process.sequential, verbose=False)
+    started = time.perf_counter()
     try:
         result = crew.kickoff(inputs=prompt_inputs(ctx))
         # The guardrail's accepted assignment, not CrewAI's copy of the raw answer: it may carry a repair.
@@ -745,7 +782,8 @@ def decide_with_crew(ctx: PlanningContext, llm: BaseLLM | str) -> PlannerRun:
     usage = result.token_usage
     return PlannerRun(assignment=assignment, tool_calls=tool.calls, agent_trace=planner_trace(messages),
                       llm_usage={k: getattr(usage, k, 0) for k in
-                                 ("successful_requests", "prompt_tokens", "completion_tokens", "total_tokens")})
+                                 ("successful_requests", "prompt_tokens", "completion_tokens", "total_tokens")},
+                      crew_ms=round((time.perf_counter() - started) * 1000))
 
 
 # ------------------------------------------------------------------ (C) the itinerary and the report
@@ -794,7 +832,8 @@ class PlannerReport(BaseModel):
     scheduled_place_ids: list[str]
     unscheduled: list[UnscheduledPlace] = Field(default_factory=list)
     assignment: DayAssignment  # the final place ids per date: the base for targeted revisions later
-    repairs: list[str] = Field(default_factory=list)  # deterministic duplicate repairs, validated, never hidden
+    repairs: list[str] = Field(default_factory=list)  # deterministic repairs (day_balance), validated, never hidden
+    decided_by: Literal["agent", "python", "python_fallback"] = "agent"  # whose day assignment is the plan
     schedule: TripSchedule  # the full deterministic schedule, scheduled stops and not
     evidence: list[StopEvidence] = Field(default_factory=list)
     hours_uncertain: list[str] = Field(default_factory=list)  # scheduled place ids with unknown/unconfirmed hours
@@ -811,6 +850,7 @@ class PlannerReport(BaseModel):
     travel_lookups: list[dict] = Field(default_factory=list)  # real travel_time calls (cached pairs not repeated)
     agent_trace: list[dict] = Field(default_factory=list)
     llm_usage: dict = Field(default_factory=dict)
+    performance: dict = Field(default_factory=dict)  # timings, guardrail attempts, repairs: for diagnosis
     verified: Literal[False] = False  # the Verifier (Milestone 5) checks the plan; the Planner never claims it
 
     @property
@@ -849,7 +889,8 @@ def _citations(report: BudgetReport, scheduled: list[str], stops: list[Scheduled
     return out
 
 
-def build_itinerary(ctx: PlanningContext, assignment: DayAssignment, *, run: PlannerRun | None = None) -> PlannerReport:
+def build_itinerary(ctx: PlanningContext, assignment: DayAssignment, *, run: PlannerRun | None = None,
+                    refine: bool = False) -> PlannerReport:
     """Validate the assignment's structure again, schedule the FINAL assignment in Python, build the Itinerary
     with BudgetReport.to_activity() and the report. Scheduling problems become unscheduled places, never errors."""
     errors = validate_assignment(assignment, ctx, check_schedule=False)
@@ -858,6 +899,15 @@ def build_itinerary(ctx: PlanningContext, assignment: DayAssignment, *, run: Pla
     plan = {d.date: [ctx.stops[i] for i in d.place_ids] for d in assignment.days}
     required = [ctx.stops[i] for i in ctx.required_ids]
     schedule = schedule_trip(plan, ctx.dates, ctx.rules, ctx.travel, required=required)
+    if refine and ctx.stops:  # the walks are measured now: avoid one over the limit if Python can
+        from .day_balance import refine_walks
+        refined, notes = refine_walks(assignment, ctx)
+        if notes and not validate_assignment(refined, ctx, check_schedule=False):
+            plan2 = {d.date: [ctx.stops[i] for i in d.place_ids] for d in refined.days}
+            schedule2 = schedule_trip(plan2, ctx.dates, ctx.rules, ctx.travel, required=required)
+            if len(schedule2.scheduled_ids) >= len(schedule.scheduled_ids):
+                assignment, plan, schedule = refined, plan2, schedule2
+                ctx.repairs.extend(notes)
     for day in schedule.days:  # the engine's own invariants: no overlaps, inside hours and the day
         if problems := validate_day(day):
             raise ItineraryPlannerError(f"internal scheduling error on {day.date}: {'; '.join(problems)}")
@@ -898,10 +948,13 @@ def build_itinerary(ctx: PlanningContext, assignment: DayAssignment, *, run: Pla
     warnings += [f"{u.name} is not in the plan: {u.reason}." for u in unscheduled if not u.required]
     if not ctx.stops:
         warnings.append("The Budget Analyst selected no places, so there is nothing to schedule.")
+    if ctx.decided_by == "python_fallback":
+        warnings.append("The planning agent gave no usable answer, so this is Python's own plan: places grouped by "
+                        "location, checked against the listed opening hours and the planning day.")
     if ctx.repairs:
-        warnings.append("The planner listed some places more than once; Python kept one of its own placements for "
-                        "each and checked the result: " + "; ".join(ctx.repairs) + ". The planner's own notes are not "
-                        "shown: they described its answer before the repair.")
+        warnings.append("Python adjusted the day plan and checked the result: " + "; ".join(ctx.repairs) + "."
+                        + (" The planner's own notes are not shown: they described its answer before the changes."
+                           if ctx.suppressed_notes else ""))
     warnings += [i.message for i in issues if i.severity == "warning"]
     quality = assess_quality(schedule, ctx.stops, ctx.rules, ctx.travel,
                                     compared_assignments=ctx.repair_compared)
@@ -914,10 +967,16 @@ def build_itinerary(ctx: PlanningContext, assignment: DayAssignment, *, run: Pla
         warnings.append(f"{len(stale)} of the planner's notes contradicted the final plan and are not shown.")
     warnings.append(NOT_VERIFIED)
     run = run or PlannerRun(assignment=assignment)
+    performance = {"crew_ms": run.crew_ms, "attempts": ctx.attempts,
+                   "rejections": [k for r in ctx.rejections for k in (r.get("problems") or {"parse_error": 1})],
+                   "duplicate_repair_runs": ctx.repair_runs, "duplicate_repairs_applied": len(ctx.repairs),
+                   "repair_combinations_compared": ctx.repair_compared, "repair_ms": ctx.repair_ms,
+                   "check_day_calls": len(run.tool_calls), "travel_lookups": len(ctx.travel.calls),
+                   "decided_by": ctx.decided_by}
     return PlannerReport(
         destination=report.destination, currency=report.currency, dates=ctx.dates, status=status,
         itinerary=itinerary, scheduled_place_ids=scheduled, unscheduled=unscheduled, assignment=assignment,
-        repairs=list(ctx.repairs), schedule=schedule, evidence=evidence,
+        repairs=list(ctx.repairs), decided_by=ctx.decided_by, schedule=schedule, evidence=evidence,
         hours_uncertain=[s.place_id for s in scheduled_stops if s.hours.status != "open"],
         travel_uncertain=[f"{e.date}: {s.travel.from_place_id} -> {s.place_id}"
                           for e, s in zip(evidence, scheduled_stops) if s.buffer_used],
@@ -926,7 +985,7 @@ def build_itinerary(ctx: PlanningContext, assignment: DayAssignment, *, run: Pla
         quality=quality, plan_summary=plan_summary(itinerary, ctx, unscheduled), planner_notes=notes,
         notes_suppressed=len(stale) + len(ctx.suppressed_notes),
         agent_tool_calls=run.tool_calls, travel_lookups=list(ctx.travel.calls), agent_trace=run.agent_trace,
-        llm_usage=run.llm_usage)
+        llm_usage=run.llm_usage, performance=performance)
 
 
 _NEGATIVE = re.compile(r"\b(?:exclud\w*|unschedul\w*|skip\w*|drop\w*|omit\w*|left out|leave out|"
@@ -974,15 +1033,27 @@ def plan_summary(itinerary: Itinerary | None, ctx: PlanningContext, unscheduled:
 
 def plan_itinerary(report: BudgetReport, bundle: ResearchBundle, llm: BaseLLM | str,
                    travel_lookup: TravelLookup | None = None, *, rules: ScheduleRules | None = None,
-                   max_lookups: int = DEFAULT_MAX_LOOKUPS) -> PlannerReport:
+                   max_lookups: int = DEFAULT_MAX_LOOKUPS, fallback: bool = True) -> PlannerReport:
     """The whole step: context (Python) -> day assignment (CrewAI agent) -> schedule and report (Python).
 
     `llm` is the crew's shared LLM; `travel_lookup` wraps the travel_time MCP tool (city and mode bound), both
     injected by the Coordinator. No LLM call when nothing is selected. Raises ItineraryPlannerError when the
     agent gives no valid assignment.
     """
+    from .day_balance import propose
     ctx = PlanningContext(report, bundle, travel_lookup, rules=rules, max_lookups=max_lookups)
     if not ctx.stops:
         return build_itinerary(ctx, DayAssignment(days=[DayChoice(date=d) for d in ctx.dates]))
-    run = decide_with_crew(ctx, llm)
-    return build_itinerary(ctx, run.assignment, run=run)
+    started = time.perf_counter()
+    ctx.proposal = propose(ctx)
+    ctx.repair_ms += round((time.perf_counter() - started) * 1000)
+    try:
+        run = decide_with_crew(ctx, llm)
+    except ItineraryPlannerError as exc:
+        if not fallback or validate_assignment(ctx.proposal, ctx, check_schedule=False):
+            raise
+        ctx.decided_by = "python_fallback"
+        ctx.repairs.append(f"the planning agent failed ({str(exc)[:160]})")
+        return build_itinerary(ctx, ctx.proposal, run=PlannerRun(assignment=ctx.proposal, tool_calls=exc.tool_calls),
+                               refine=True)
+    return build_itinerary(ctx, run.assignment, run=run, refine=True)

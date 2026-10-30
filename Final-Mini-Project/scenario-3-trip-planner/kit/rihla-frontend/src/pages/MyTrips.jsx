@@ -19,7 +19,7 @@ const demoTrips = [
   {
     id: 1,
     destination: 'Istanbul',
-    country: 'TÃ¼rkiye',
+    country: 'Türkiye',
     dates: 'Oct 29 â€“ 31, 2026',
     travellers: 2,
     budget: '$1,500',

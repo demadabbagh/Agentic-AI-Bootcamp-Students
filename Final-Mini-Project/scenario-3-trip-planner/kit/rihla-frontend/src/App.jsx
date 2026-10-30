@@ -1,6 +1,9 @@
-﻿import { useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { createTrip } from './services/tripApi'
+import { validateTripResult } from './services/tripResult'
+
+const LIVE_AI_ENABLED = import.meta.env.VITE_ENABLE_LIVE_AI === 'true'
 
 import {
   ArrowRight,
@@ -26,9 +29,19 @@ export default function App() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [elapsed, setElapsed] = useState(0)
+
+  // A real clock while the backend works (it reports no stages yet): never an invented progress bar.
+  useEffect(() => {
+    if (!isLoading) return undefined
+    const started = Date.now()
+    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000)
+    return () => clearInterval(timer)
+  }, [isLoading])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    if (isLoading) return // one request at a time
     setError('')
 
     const trip = {
@@ -41,20 +54,20 @@ export default function App() {
       customPreferences,
     }
 
-    if (import.meta.env.VITE_ENABLE_LIVE_AI !== 'true') {
-      navigate('/trip', { state: trip })
+    // Never fall through to the Dashboard without a generated itinerary.
+    if (!LIVE_AI_ENABLED) {
+      setError(
+        'Live AI trip generation is turned off (VITE_ENABLE_LIVE_AI), so no trip was generated. Use "View Sample Trip" to preview the dashboard.'
+      )
       return
     }
 
+    setElapsed(0)
     setIsLoading(true)
 
     try {
       const sessionId = crypto.randomUUID()
-      const result = await createTrip(trip, sessionId)
-
-      if (!result?.itinerary || !Array.isArray(result.itinerary.days) || result.itinerary.days.length === 0) {
-        throw new Error(result?.message || 'The AI could not generate a complete trip. Please try another destination.')
-      }
+      const result = validateTripResult(await createTrip(trip, sessionId))
 
       navigate('/trip', {
         state: {
@@ -240,10 +253,10 @@ export default function App() {
                       ['History & Culture', 'History'],
                       ['Nature & Outdoors', 'Nature'],
                       ['Food & Cuisine', 'Food'],
-                      ['Shopping', '???'],
+                      ['Shopping', 'Shopping'],
                       ['Art & Museums', 'Art'],
                       ['Adventure', 'Adventure'],
-                      ['Relaxation', '???'],
+                      ['Relaxation', 'Relaxation'],
                       ['Entertainment', 'Entertainment'],
                     ].map(([interest]) => {
                       const selected = interests.includes(interest)
@@ -306,29 +319,44 @@ export default function App() {
 <button
                   disabled={isLoading}
                   type="submit"
-                  className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-[#c7eeec] px-5 py-4 text-sm font-bold text-[#143b46] shadow-lg transition hover:-translate-y-0.5 hover:bg-white"
+                  className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl bg-[#c7eeec] px-5 py-4 text-sm font-bold text-[#143b46] shadow-lg transition hover:-translate-y-0.5 hover:bg-white disabled:cursor-wait disabled:opacity-80 disabled:hover:translate-y-0"
                 >
                   <Sparkles size={18} />
-                  {isLoading ? 'Planning your trip...' : 'Plan my dream trip'}
+                  {isLoading ? `Planning your trip... ${elapsed}s` : 'Plan my dream trip'}
                   <ArrowRight size={18} />
                 </button>
 
+                {isLoading && (
+                  <p role="status" className="text-center text-xs text-white/80">
+                    Researching places, pricing them, building and checking the day plan. This usually takes
+                    one to two minutes; please keep this page open.
+                  </p>
+                )}
+
                 <p className="text-center text-xs text-white/65">
-                  Thoughtful journeys, powered by AI Ã¢Å“Â¨
+                  Thoughtful journeys, powered by AI ✨
                 </p>
                 {error && (
                   <p role="alert" className="text-center text-sm text-red-200">
                     {error}
                   </p>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => navigate('/trip', { state: { sample: true } })}
+                  className="w-full rounded-2xl border border-white/35 bg-white/10 px-5 py-3 text-xs font-semibold text-white/85 transition hover:bg-white/20"
+                >
+                  View Sample Trip (demo data, not AI-generated)
+                </button>
               </form>
             </div>
           </div>
         </div>
 
         <div className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-7 pb-8 text-xs text-white/70 md:px-12">
-          <span>RIHLA Ã‚Â· REIMAGINE THE WAY YOU TRAVEL</span>
-          <span className="hidden md:block">SCROLL TO DISCOVER Ã¢â€ â€œ</span>
+          <span>RIHLA · REIMAGINE THE WAY YOU TRAVEL</span>
+          <span className="hidden md:block">SCROLL TO DISCOVER ↓</span>
         </div>
       </section>
     </main>

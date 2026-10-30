@@ -220,25 +220,31 @@ def test_status_is_the_calculators_verdict_except_infeasible_which_refines_over_
 def test_live_run_decision_reports_the_plan_and_the_alternatives_separately():
     cands = prepare_candidates(bundle())
     report = apply_decision(cands, decide(cands, LIVE_RUN_1))
-    assert [i.place_id for i in report.selected] == [TOPKAPI, HAGIA, SULEYMANIYE, PERA, ALI_USTA]
-    assert report.known_total == Decimal("170.57")  # 110.58 + 55.97 + 0 + 0.80 + 3.22: the plan only
-    assert report.remaining == Decimal("529.43") and report.status == "within_budget"
-    assert [i.place_id for i in report.optional] == [CISTERN, GALATA, DOLMABAHCE]
-    assert report.optional_known_total == Decimal("197.02")  # 96.50 + 52.27 + 48.25
+    # Four sightseeing places for three days: Python adds the analyst's best-ranked alternative (top_up, labelled)
+    assert [i.place_id for i in report.selected] == [TOPKAPI, HAGIA, SULEYMANIYE, PERA, ALI_USTA, CISTERN]
+    assert [i.place_id for i in report.selected if i.promoted] == [CISTERN]
+    assert report.known_total == Decimal("267.07")  # 110.58 + 55.97 + 0 + 0.80 + 3.22 + 96.50: the plan only
+    assert report.remaining == Decimal("432.93") and report.status == "within_budget"
+    assert [i.place_id for i in report.optional] == [GALATA, DOLMABAHCE]
+    assert report.optional_known_total == Decimal("100.52")  # 52.27 + 48.25
     assert report.all_options_known_total == Decimal("367.59") and report.all_options_status == "within_budget"
     assert all(i.fits_if_added for i in report.optional)
     line = next(w for w in report.warnings if w.startswith("Optional alternatives"))
-    assert "not in the plan or its total" in line and "197.02 USD" in line and "367.59 USD" in line
+    assert "not in the plan or its total" in line and "100.52 USD" in line and "367.59 USD" in line
 
 
-def test_alternatives_never_change_the_plans_verdict():
+def test_a_thin_plan_takes_the_alternatives_that_fit_and_never_one_that_breaks_the_budget():
+    """Two sightseeing places are too few for the trip: Python adds the analyst's own alternatives that fit
+    (top_up). An unknown cost may join (it is "undetermined", never free); the over-budget hamam never does."""
     cands = prepare_candidates(bundle(budget_total=300))
     report = apply_decision(cands, decide(cands, {HAGIA: ("include", 1), CISTERN: ("include", 2),
                                                   HAMAM: ("optional", 1), BAZAAR: ("optional", 2)}))
-    assert report.status == "within_budget" and report.known_total == Decimal("263.05")
-    assert report.unknown_cost_items == [] and report.optional_unknown_items == ["Grand Bazaar"]
-    assert report.all_options_status == "over_budget"  # 263.05 + 335.79 > 300, whatever the bazaar costs
-    assert [(i.place_id, i.fits_if_added) for i in report.optional] == [(HAMAM, False), (BAZAAR, None)]
+    assert [i.place_id for i in report.selected if i.promoted] == [BAZAAR]
+    assert report.known_total == Decimal("263.05")  # the bazaar's unknown cost is not counted as zero ...
+    assert report.unknown_cost_items == ["Grand Bazaar"] and report.status == "undetermined"  # ... but unknown
+    assert [(i.place_id, i.fits_if_added) for i in report.optional] == [(HAMAM, False)]
+    assert any(p.startswith("Grand Bazaar: added from the optional alternatives") for p in report.promotions)
+    assert next(i for i in report.selected if i.place_id == BAZAAR).reason.startswith("Added by Python")
 
 
 def test_an_unknown_cost_alternative_cannot_be_called_affordable():
@@ -437,7 +443,9 @@ def test_check_selection_tool_returns_pythons_numbers_and_always_adds_required_p
 def test_crew_run_uses_the_tool_then_python_applies_the_validated_decision():
     b = bundle(budget_total=300)
     cands = prepare_candidates(b)
-    decision = decide(cands, {HAGIA: ("include", 1), CISTERN: ("include", 2), HAMAM: ("optional", 1)})
+    # Suleymaniye (free) brings the plan to the 3-day minimum of non-meal places, so no "too thin" retry.
+    decision = decide(cands, {HAGIA: ("include", 1), CISTERN: ("include", 2), SULEYMANIYE: ("include", 3),
+                              HAMAM: ("optional", 1)})
     llm = ScriptedLLM(model="scripted-test", replies=[action([HAGIA, CISTERN, HAMAM]), final(decision)])
     report = run_budget_analyst(b, llm)
     assert len(llm.prompts) == 2 and report.agent_tool_calls[0]["tool"] == "check_selection"
@@ -506,7 +514,7 @@ def test_native_tool_call_is_executed_and_leaves_evidence():
         {"step": "tool_result", "tool": "check_selection", "status": "within_budget", "known_total": "167.35"},
         {"step": "final_answer"}]
     assert set(report.llm_usage) == {"successful_requests", "prompt_tokens", "completion_tokens", "total_tokens"}
-    assert report.known_total == Decimal("170.57")  # Python's plan, whatever the agent checked
+    assert report.known_total == Decimal("267.07")  # Python's plan (with its top-up), whatever the agent checked
 
 
 def test_tool_evidence_keeps_only_names_ids_statuses_and_totals():

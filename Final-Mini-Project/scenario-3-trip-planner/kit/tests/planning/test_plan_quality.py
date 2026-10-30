@@ -52,21 +52,24 @@ def test_the_6_2_0_plan_is_valid_but_flagged():
     assert any(w.startswith("Planning advice: 2026-11-04 (Wed) has no places") for w in report.warnings)
 
 
-def test_guardrail_sends_an_avoidable_empty_day_back_with_the_places_that_fit():
+def test_an_avoidable_empty_day_is_filled_by_python_without_a_retry():
+    """The 6/2/0 plan: Python moves places from the overfull Monday to the empty Wednesday itself."""
     ctx = context()
-    ok, message = make_guardrail(ctx)(assign(SIX_TWO_ZERO).model_dump_json())
-    assert not ok and "2026-11-04 (Wed) is empty; Python can schedule any of these there:" in message
-    assert DOLMABAHCE in message and "ONE-TIME RULE" in message and "corrected plan" not in message
-    assert ctx.rejections[-1]["problems"] == {"empty_day": 1}
-
-
-def test_the_last_attempt_accepts_a_valid_plan_and_keeps_the_finding():
-    ctx = context()
-    ctx.attempts = GUARDRAIL_RETRIES  # the next answer is the last one CrewAI will ask for
     ok, accepted = make_guardrail(ctx)(assign(SIX_TWO_ZERO).model_dump_json())
-    assert ok
+    assert ok and ctx.rejections == []  # valid as given: nothing to reject, only to improve
+    wed = next(d for d in accepted.days if str(d.date) == WED)
+    assert wed.place_ids and any(n.startswith("moved ") and "2026-11-04 (Wed), which had no places" in n
+                                 for n in ctx.repairs)
     report = build_itinerary(ctx, accepted)
-    assert any(q.code == "empty_day" and q.avoidable for q in report.quality)  # reported, never hidden
+    assert not any(q.code == "empty_day" for q in report.quality)
+    no_overlaps(report)
+
+
+def test_any_attempt_gets_the_same_python_balance():
+    ctx = context()
+    ctx.attempts = GUARDRAIL_RETRIES  # the last answer CrewAI asks for is balanced the same way
+    ok, accepted = make_guardrail(ctx)(assign(SIX_TWO_ZERO).model_dump_json())
+    assert ok and all(d.place_ids for d in accepted.days)
 
 
 def test_an_unavoidable_empty_day_is_accepted_and_said_to_be_unavoidable():
@@ -98,15 +101,16 @@ def test_duplicate_repair_prefers_a_balanced_plan_from_the_agents_own_placements
     assert sum(": kept " in n for n in notes) == 7  # every place but Topkapı was listed twice in this answer
 
 
-def test_repair_cannot_fill_a_date_the_agent_never_chose_so_the_agent_is_asked():
+def test_a_date_the_agent_never_chose_is_filled_from_the_planned_places_only():
     ctx = context()
     a = assign({MON: [HAGIA, TOPKAPI, CISTERN, ALI_USTA, SULEYMANIYE],
                 TUE: [SULEYMANIYE, BAZAAR, DOLMABAHCE, PERA], WED: []})
-    ok, message = make_guardrail(ctx)(a.model_dump_json())
-    assert not ok and ctx.repairs == []  # not accepted yet: Wednesday could be used
-    assert "2026-11-04 (Wed) is empty" in message
-    assert "Python removed your duplicate placements; start from this corrected plan" in message
-    assert '"2026-11-04": []' in message  # the corrected plan, with nothing invented for Wednesday
+    ok, accepted = make_guardrail(ctx)(a.model_dump_json())
+    assert ok
+    wed = next(d for d in accepted.days if str(d.date) == WED).place_ids
+    assert wed and set(wed) <= set(ctx.stops)  # nothing invented: only selected places moved there
+    ids = [i for d in accepted.days for i in d.place_ids]
+    assert len(ids) == len(set(ids))  # Süleymaniye kept once
 
 
 def test_live_run_2_is_repaired_balanced_and_explained_consistently():

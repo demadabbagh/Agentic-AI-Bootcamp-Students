@@ -46,7 +46,8 @@ JOD_PEG_SOURCE = "https://www.cbj.gov.jo/"
 FORECAST_DAYS = 16
 MIN_INTERVAL = {"nominatim.openstreetmap.org": 1.1, "routing.openstreetmap.de": 1.0, "en.wikivoyage.org": 0.5}
 MEM_TTL_S = 3 * 3600
-MAX_DISTRICTS = 14
+MAX_DISTRICTS = 24  # district pages per city (Paris has 21); each is one rate-limited, cached request
+MAX_DISTRICT_DEPTH = 2  # districts of districts, for hierarchical cities
 DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 
@@ -173,7 +174,13 @@ def http_get(url: str, params: dict | None = None) -> tuple[httpx.Response, str]
 
 # ------------------------------------------------------------------ Wikivoyage listings
 LISTING_RE = re.compile(r"\{\{\s*(see|do|eat|drink|buy|listing)\s*(?=\||\}\})", re.I)
-MARKET_RE = re.compile(r"bazaar|market|souq|souk|carsi|arasta", re.I)
+MARKET_RE = re.compile(r"bazaar|market|marche|souq|souk|carsi|arasta|mercado|mercato|markt|\bpuces\b", re.I)
+# A "buy" listing is a shopping destination (not just one shop) when its name says so, or its own text calls it a
+# department store, a mall, a covered passage or arcade, a flea market or a shopping street or district.
+SHOP_NAME_RE = re.compile(r"galerie|galleria|department store|grands? magasins?|\bmall\b|shopping|arcade|passage|"
+                          r"emporium|outlet|halles|shotengai|depachika", re.I)
+SHOP_TEXT_RE = re.compile(r"department store|shopping (?:mall|cent(?:er|re)|street|district|arcade|area|precinct)|"
+                          r"covered (?:passage|arcade|market)|flea market|\bmall\b|grands magasins", re.I)
 HEADING_RE = re.compile(r"^(={2,4})\s*(.*?)\s*\1\s*$", re.M)
 TIER_RE = [("budget", re.compile(r"budget|cheap", re.I)), ("mid-range", re.compile(r"mid", re.I)),
            ("splurge", re.compile(r"splurge|expensive|upscale|fine", re.I))]
@@ -186,18 +193,36 @@ TAG_RULES = {
     "nature": r"\bpark\b|garden|forest|grove|beach|island|nature|woods|lake\b|botanic|arboretum|bird|valley|"
               r"trail|hiking|\bwadi\b|seaside|cycling",
     "views": r"\bview|panoram|tower|lookout|rooftop|observation|sunset|cable car",
-    "markets": r"bazaar|market|souq|souk|shopping|street\b|avenue",
+    # Shopping: places to shop, not any listing on a street ("street" and "avenue" matched almost everything).
+    "markets": r"bazaar|market|marche|souq|souk|shopping|department store|\bmall\b|boutiques|flea|\bpuces\b|"
+               r"covered passage|arcade",
     "art": r"\bart\b|\barts\b|gallery|galleries|contemporary|painting|sculpture|creative",
     "architecture": r"architect|dome|minaret|mansion|pavilion|facade|kiosk",
     "family": r"children|kids|family|aquarium|\bzoo\b|\btoy|miniat|playground|amusement|aqua park|dolphin|vialand",
-    "food": r"\bfood|cooking|culinary|tasting",
+    "food": r"\bfood|cooking|culinary|tasting|gastronom|street food|food hall|\bwine\b|cheese|chocolate|"
+            r"patisserie|pastr(y|ies)|bakery|\bspice",
+    "entertainment": r"\bopera\b|cabaret|cinema|concert|live music|\bjazz\b|nightclub|nightlife|comedy|circus|"
+                     r"musical\b|\bshows?\b|performances?|ballet|karaoke|theme park|amusement park|stadium|casino|"
+                     r"music hall|puppet|kabuki|\bnoh\b|bunraku|\bfestival|\bgig\b",
+    "relaxation": r"\bspa\b|hammam|turkish bath|onsen|hot spring|sauna|thermal|massage|bathhouse|"
+                  r"\bgardens?\b|\bpark\b|beach|promenade|riverside|riverbank|waterfront|tea ?house|"
+                  r"quiet|peaceful|tranquil|relax|cruise",
+    "adventure": r"hik(e|ing)|\btrek|climb|kayak|canoe|rafting|zip ?line|paraglid|bungee|scuba|diving|snorkel|"
+                 r"\bsurf|cycling|bike tour|bicycle|horse riding|camel ride|\bquad\b|\batv\b|jeep|safari|caving|"
+                 r"via ferrata|sailing|\bski(ing)?\b|snowboard|escape room|rope park|adventure",
 }
+# A theatre is entertainment unless the listing is about an ancient one (then it is history).
+_ANCIENT_THEATRE = re.compile(r"ancient|roman|greek|amphitheat|ruin|odeon|hellenistic", re.I)
+_THEATRE = re.compile(r"theat(er|re)", re.I)
 INTEREST_SYNONYMS = {
     "historical": "history", "historic": "history", "heritage": "history", "historical sites": "history",
     "museums": "museum", "nature": "nature", "parks": "nature", "outdoors": "nature", "gardens": "nature",
     "religion": "religious", "mosques": "religious", "churches": "religious", "shopping": "markets",
     "bazaars": "markets", "market": "markets", "galleries": "art", "views": "views", "viewpoints": "views",
     "kids": "family", "children": "family", "family": "family", "architecture": "architecture", "food": "food",
+    "cuisine": "food", "entertainment": "entertainment", "nightlife": "entertainment", "shows": "entertainment",
+    "relaxation": "relaxation", "relax": "relaxation", "spa": "relaxation", "wellness": "relaxation",
+    "adventure": "adventure", "outdoor activities": "adventure",
 }
 DIET_RE = re.compile(r"vegetarian|vegan|halal|gluten|kosher|vegetable|meze|mezze|falafel|hummus", re.I)
 
@@ -275,9 +300,16 @@ def wv_page_url(title: str, anchor: str = "") -> str:
     return url + ("#" + quote(anchor.replace(" ", "_"), safe="_") if anchor else "")
 
 
-def tags_for(text: str, kind: str) -> list[str]:
+def tags_for(text: str, kind: str, name: str | None = None) -> list[str]:
+    """Interest tags from a listing's own text. With `name`: a place that is not a "buy" listing is shopping only
+    when its name says so (a market, a passage, a mall), never because its description mentions a market."""
     low = fold(text)
     tags = [tag for tag, rx in TAG_RULES.items() if re.search(rx, low)]
+    if name is not None and kind != "buy" and "markets" in tags and not (
+            re.search(TAG_RULES["markets"], fold(name)) or SHOP_NAME_RE.search(fold(name))):
+        tags.remove("markets")
+    if _THEATRE.search(low) and not _ANCIENT_THEATRE.search(low) and "entertainment" not in tags:
+        tags.append("entertainment")
     if kind in ("eat", "drink"):
         tags = [t for t in tags if t in ("views", "family")] + ["food"]
     if kind == "buy" and "markets" not in tags:
@@ -311,8 +343,9 @@ def parse_listings(title: str, wikitext: str, city_slug: str) -> list[dict]:
             continue
         content = clean_wiki(params.get("content", ""))
         alt = clean_wiki(params.get("alt", ""))
-        if kind == "buy" and not MARKET_RE.search(fold(f"{name} {alt}")):
-            continue  # shops are not attractions; bazaars and markets are
+        if kind == "buy" and not (MARKET_RE.search(fold(f"{name} {alt}")) or SHOP_NAME_RE.search(fold(f"{name} {alt}"))
+                                  or SHOP_TEXT_RE.search(fold(content))):
+            continue  # a single shop is not an attraction; bazaars, markets and shopping destinations are
         tier = None
         if kind in ("eat", "drink"):
             tier = next((t for t, rx in TIER_RE if rx.search(sub)), None)
@@ -336,7 +369,7 @@ def parse_listings(title: str, wikitext: str, city_slug: str) -> list[dict]:
             "last_edit": (params.get("lastedit") or "").strip() or None,
             "wikidata": (params.get("wikidata") or "").strip() or None,
             "description": content,
-            "tags": tags_for(f"{name} {alt} {content}", kind),
+            "tags": tags_for(f"{name} {alt} {content}", kind, f"{name} {alt}"),
             "dietary_mentions": sorted({w.lower() for w in DIET_RE.findall(content)}) if kind in ("eat", "drink") else [],
             "source_url": wv_page_url(title, section or ""),
         }
@@ -344,9 +377,40 @@ def parse_listings(title: str, wikitext: str, city_slug: str) -> list[dict]:
     return out
 
 
+REGIONLIST_RE = re.compile(r"\{\{\s*regionlist\b", re.I)
+REGION_FIELD_RE = re.compile(r"region\d+(?:name|items)$", re.I)
+WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)")
+
+
+def _link_target(raw: str) -> str | None:
+    target = " ".join(raw.replace("_", " ").split())
+    if not target or ":" in target:  # File:, Category:, w: and other namespaces are not district pages
+        return None
+    return target[:1].upper() + target[1:]
+
+
 def parse_districts(title: str, wikitext: str) -> list[str]:
-    subs = re.findall(r"region\d+name\s*=\s*\[\[([^\]|]+)", wikitext)
-    return [s.strip() for s in subs if s.strip().lower().startswith(title.lower() + "/")]
+    """District pages of a city page, in the page's own order.
+
+    1. Every link in the Regionlist's regionNname and regionNitems fields. Big cities group districts under a
+       plain-text name and list the district links in "items" (Paris: region1name=Central Paris,
+       region1items=[[Paris/1st arrondissement|1st arr.]], ...); smaller ones link the name itself.
+    2. Then subpage links ([[City/...]]) anywhere on the page, for cities without a Regionlist.
+    """
+    out: list[str] = []
+    for m in REGIONLIST_RE.finditer(wikitext):
+        body = wikitext[m.end():_template_end(wikitext, m.start()) - 2]
+        for key, value in _split_params(body).items():
+            if REGION_FIELD_RE.match(key.strip()):
+                out += [t for t in map(_link_target, WIKILINK_RE.findall(value)) if t]
+    prefix = fold(title) + "/"
+    out += [t for t in map(_link_target, WIKILINK_RE.findall(wikitext)) if t and fold(t).startswith(prefix)]
+    seen, districts = {fold(title)}, []
+    for t in out:
+        if fold(t) not in seen:
+            seen.add(fold(t))
+            districts.append(t)
+    return districts
 
 
 def page_record(title: str, wikitext: str, retrieved_at: str, revid=None, requested: str | None = None) -> dict:
@@ -381,21 +445,72 @@ def city_title(city: str) -> str:
     return known.get(fold(name), name[:1].upper() + name[1:])
 
 
+def _district_pages(page: dict) -> list[dict]:
+    """The city's district pages, breadth first: its districts, then theirs (a hierarchical city such as
+    London -> London/Central -> ...), at most MAX_DISTRICT_DEPTH levels and MAX_DISTRICTS pages."""
+    queue = [(d, 1) for d in page.get("districts", [])]
+    seen, pages = {fold(page["title"])}, []
+    while queue and len(pages) < MAX_DISTRICTS:
+        title, depth = queue.pop(0)
+        if fold(title) in seen:
+            continue
+        seen.add(fold(title))
+        try:
+            district = wv_page(title)[0]
+        except DataError as exc:
+            if exc.code not in ("not_cached", "page_not_found", "upstream_unavailable"):
+                raise
+            continue
+        seen.add(fold(district["title"]))  # a redirect lands on its target's title
+        pages.append(district)
+        if depth < MAX_DISTRICT_DEPTH:
+            queue += [(d, depth + 1) for d in district.get("districts", [])]
+    return pages
+
+
+def _same_place(a: dict, b: dict) -> bool:
+    """The same listing on two pages: a city page summarises places its district pages list in full."""
+    if fold(a["name"]) != fold(b["name"]):
+        return False
+    if None not in (a.get("lat"), b.get("lat")):
+        return abs(a["lat"] - b["lat"]) < 0.005 and abs(a["lon"] - b["lon"]) < 0.005  # ~0.5 km
+    return a.get("district") is None or b.get("district") is None  # the city page's copy of a district listing
+
+
+GENERIC_NAME_WORDS = {"musee", "museum", "palais", "palace", "eglise", "church", "place", "parc", "park", "jardin",
+                      "garden", "le", "la", "les", "du", "de", "des", "the", "of", "saint", "st", "rue", "street"}
+
+
+def _city_copy_of(item: dict, kept: list[dict]) -> bool:
+    """A city-page listing that summarises a district listing under another name ("The Louvre" for "Musee du
+    Louvre"): at the same spot (about 60 m) and sharing a distinctive word of the name."""
+    if item.get("district") is not None or item.get("lat") is None:
+        return False
+    words = {w for w in re.findall(r"[a-z0-9]+", fold(item["name"])) if len(w) > 3} - GENERIC_NAME_WORDS
+    for other in kept:
+        if other.get("district") is None or other.get("lat") is None or other["kind"] != item["kind"]:
+            continue
+        near = abs(other["lat"] - item["lat"]) < 0.0006 and abs(other["lon"] - item["lon"]) < 0.0008
+        if near and words & set(re.findall(r"[a-z0-9]+", fold(other["name"]))):
+            return True
+    return False
+
+
 def city_listings(city: str) -> tuple[list[dict], dict]:
     """Listings of a city page plus its district pages (districts first, in the page's own order)."""
     title = city_title(city)
     page, m = wv_page(title)
-    pages = []
-    for district in page.get("districts", [])[:MAX_DISTRICTS]:
-        try:
-            pages.append(wv_page(district)[0])
-        except DataError as exc:
-            if exc.code not in ("not_cached", "page_not_found", "upstream_unavailable"):
-                raise
+    pages = _district_pages(page)
     pages.append(page)
     seen, listings = set(), []
+    by_name: dict[str, list[dict]] = {}
     for p in pages:
         for item in p["listings"]:
+            if any(_same_place(item, other) for other in by_name.get(fold(item["name"]), [])):
+                continue  # keep the first copy: district pages come first and carry the full listing
+            if _city_copy_of(item, listings):
+                continue  # the city page's summary of a district listing, under another name
+            by_name.setdefault(fold(item["name"]), []).append(item)
             uid = item["id"]
             if uid in seen:  # same name in two districts: keep both, make the id unique
                 uid = f"{uid}-{slug(item.get('district') or 'city')}"
@@ -403,7 +518,10 @@ def city_listings(city: str) -> tuple[list[dict], dict]:
             while uid in seen:
                 uid, n = f"{item['id']}-{n}", n + 1
             seen.add(uid)
-            listings.append(dict(item, id=uid, city=page["title"]))
+            # Tags are derived again from the listing's own text, so recorded pages use the current rules too.
+            tags = tags_for(f"{item['name']} {item.get('alt') or ''} {item.get('description') or ''}", item["kind"],
+                            f"{item['name']} {item.get('alt') or ''}")
+            listings.append(dict(item, id=uid, city=page["title"], tags=tags))
     meta = {"city": page["title"], "mode": m, "retrieved_at": page["retrieved_at"],
             "pages": [p["source_url"] for p in pages], "source": "Wikivoyage", "licence": WV_LICENCE}
     return listings, meta
@@ -589,11 +707,13 @@ def parse_price(raw: str | None) -> dict | None:
 
 def enrich(listing: dict, overlays: dict | None = None) -> dict:
     """Public shape of a listing: structured hours/price, citation, overlays applied."""
-    item = {k: v for k, v in listing.items() if k not in ("hours_raw", "price_raw")}
-    item["hours"] = parse_hours(listing.get("hours_raw"))
-    price = parse_price(listing.get("price_raw"))
+    item = {k: v for k, v in listing.items() if k not in ("hours_raw", "price_raw", "hours_parsed", "price_parsed")}
+    # A provider with structured data (Google Places) gives hours and prices already in the parsed shape.
+    item["hours"] = listing["hours_parsed"] if "hours_parsed" in listing else parse_hours(listing.get("hours_raw"))
+    price = listing["price_parsed"] if "price_parsed" in listing else parse_price(listing.get("price_raw"))
     item["price"] = price
-    item["citation"] = {"id": listing["id"], "title": f"{listing['name']} - Wikivoyage ({listing.get('district') or listing.get('city')})",
+    source = listing.get("source") or "Wikivoyage"
+    item["citation"] = {"id": listing["id"], "title": f"{listing['name']} - {source} ({listing.get('district') or listing.get('city')})",
                         "url": listing["source_url"]}
     item["synthetic"] = bool(listing.get("synthetic"))
     for patch in (overlays or {}).get("patches", []):
@@ -651,10 +771,66 @@ def interest_tags(interests: str | None) -> list[str]:
 
 
 def matches_interest(item: dict, wanted: list[str]) -> bool:
-    if not wanted:
+    return interest_score(item, wanted) > 0 or not wanted
+
+
+KIND_FOR_INTEREST = {"markets": {"buy"}, "adventure": {"do"}, "entertainment": {"do", "drink"}}
+
+
+def _matches_one(item: dict, w: str) -> bool:
+    """One wanted interest: a tag of the listing, or (for words with no tag rule) in its own text."""
+    if w in item.get("tags", []):
         return True
-    text = fold(f"{item['name']} {item.get('alt') or ''} {item.get('description') or ''}")
-    return any(w in item.get("tags", []) or fold(w) in text for w in wanted)
+    if w in TAG_RULES:  # a tagged interest is matched by its rule only: "art" must not match "start" or "party"
+        return False
+    return fold(w) in fold(f"{item['name']} {item.get('alt') or ''} {item.get('description') or ''}")
+
+
+def interest_score(item: dict, wanted: list[str]) -> int:
+    """How many of the wanted interests a listing matches (its tags or its own text): 0 = none."""
+    return sum(_matches_one(item, w) for w in wanted)
+
+
+def distribute(items: list[dict], wanted: list[str]) -> list[dict]:
+    """Order listings by relevance, then spread them over the city's districts.
+
+    Only facts from the listings: how many interests a place matches, and whether it can be mapped. Within the
+    same relevance, the districts take turns (each district's best first, in page order), so one district does
+    not fill the first page of results. No ratings or popularity are invented.
+
+    With two or more tagged interests, the interests then take turns: each picks its next most relevant place
+    not taken yet. Ranking by the number of matches alone let places matching several interests (a history and
+    art museum) fill every slot, so a traveller who asked for history, shopping and art got only museums.
+    """
+    def own_key(item):
+        return -interest_score(item, wanted), item.get("lat") is None
+
+    districts: dict = {}
+    for item in items:
+        districts.setdefault(item.get("district"), []).append(item)
+    keyed = []
+    for d_order, members in enumerate(districts.values()):
+        for turn, item in enumerate(sorted(members, key=own_key)):  # stable: page order within a district
+            keyed.append((own_key(item), turn, d_order, item))
+    ranked = [item for *_, item in sorted(keyed, key=lambda k: k[:3])]
+    tagged = [w for w in dict.fromkeys(wanted) if w in TAG_RULES]
+    if len(tagged) < 2:
+        return ranked
+    # Within an interest, listings of the kind that interest is about come first (a shop for shopping, an
+    # activity for adventure): a museum whose text mentions a market is not a shopping trip.
+    queues = {w: sorted((i for i in ranked if _matches_one(i, w)),
+                        key=lambda i: i.get("kind") not in KIND_FOR_INTEREST.get(w, {i.get("kind")}))
+              for w in tagged}
+    out, taken = [], set()
+    while any(queues.values()):
+        for w in tagged:
+            queue = queues[w]
+            while queue and id(queue[0]) in taken:
+                queue.pop(0)
+            if queue:
+                taken.add(id(queue[0]))
+                out.append(queue.pop(0))
+    return out + [i for i in ranked if id(i) not in taken]
 
 
 STOPWORDS = {"the", "of", "and", "in", "at", "a", "an", "de", "di", "el", "al", "to"}
@@ -739,7 +915,7 @@ def resolve_place(place: str, city: str, listings: list[dict] | None = None) -> 
     item, _ = find_listing([l for l in listings if l.get("lat") is not None], place)
     if item:
         return {"name": item["name"], "id": item["id"], "lat": item["lat"], "lon": item["lon"],
-                "resolved_by": "wikivoyage listing", "source_url": item["source_url"]}
+                "resolved_by": f"{(item.get('source') or 'Wikivoyage').lower()} listing", "source_url": item["source_url"]}
     query = place if fold(city) in fold(place) else f"{place}, {city}"
     rec, _ = geocode(query)
     return {"name": rec.get("name") or place, "lat": rec["lat"], "lon": rec["lon"], "resolved_by": "nominatim",

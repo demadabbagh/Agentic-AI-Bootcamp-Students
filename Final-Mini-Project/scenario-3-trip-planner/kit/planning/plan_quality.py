@@ -41,6 +41,29 @@ class QualityIssue(BaseModel):
     avoidable: bool  # Python found a feasible alternative among the planned places
 
 
+FULL_DAY_TARGET = 2  # non-meal places on a full sightseeing day; up to one more when it fits
+LIGHT_DAY_TARGET = 1  # arrival and departure days of a trip of three days or more
+EXTRA_PER_DAY = 1
+
+
+def daily_targets(n_days: int) -> list[int]:
+    """The non-meal places a useful day has, per trip date: lighter first and last days on longer trips.
+
+    A target, never a quota: a day with fewer feasible places stays lighter, and nothing is added to reach it.
+    """
+    if n_days <= 0:
+        return []
+    if n_days <= 2:
+        return [FULL_DAY_TARGET] * n_days
+    return [LIGHT_DAY_TARGET] + [FULL_DAY_TARGET] * (n_days - 2) + [LIGHT_DAY_TARGET]
+
+
+def target_range(n_days: int) -> tuple[int, int]:
+    """(min, max) non-meal places for the whole trip: the daily targets, and one more per day at most."""
+    low = sum(daily_targets(n_days))
+    return low, low + EXTRA_PER_DAY * max(n_days, 0)
+
+
 def movable_to(day: dt.date, schedule: TripSchedule, stops: Mapping[str, Stop], rules: ScheduleRules,
                travel: TravelTimes) -> list[str]:
     """Places planned on another date that has two or more places, which Python can schedule alone on `day`."""

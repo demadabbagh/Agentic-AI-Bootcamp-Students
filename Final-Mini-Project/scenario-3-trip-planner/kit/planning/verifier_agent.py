@@ -93,6 +93,16 @@ _VERIFIED_CLAIM = re.compile(r"(?<!not )(?<!be )(?<!been )\b(?:verified|fully ch
                              r"passed|no (?:issues|problems|errors)|safe to (?:visit|go|book|save))\b", re.I)
 _CERTAINTY = re.compile(r"(?<!not )(?<!be )(?<!been )\b(?:confirmed|definitely|certainly|is closed|are closed|"
                         r"was closed|is wrong|fails|failed|violates?|over budget|too short)\b", re.I)
+# Wording that says evidence is MISSING, which a missing-evidence explanation should say: a negation up to two
+# words before ("not yet confirmed", "could not be confirmed"), or a lookup that failed (why it is unknown).
+_HEDGED = re.compile(r"\b(?:not|never|no|isn't|aren't|wasn't|hasn't|haven't|cannot|can't|couldn't|un)"
+                     r"(?:\s+\w+){0,2}\s+(?:confirmed|closed)\b|"
+                     r"\b(?:lookups?|requests?|checks?|calls?|searches|search|tool|travel_time|get_opening_hours)"
+                     r"(?:\s+\w+){0,1}\s+(?:failed|fails)\b", re.I)
+
+
+def _states_certainty(text: str) -> bool:
+    return bool(_CERTAINTY.search(_HEDGED.sub(" ", text)))
 
 
 class VerifierAgentError(RuntimeError):
@@ -206,8 +216,29 @@ class VerifierDecision(BaseModel):
 # error there costs an extra LLM "conversion" call and then fails the task with no retry. So the draft accepts any
 # JSON object of roughly this shape (unknown keys too), and the guardrail checks every rule with words the agent
 # can act on. Nothing in a draft is used until the guardrail has turned it into a VerifierDecision.
+#
+# The JSON schema is a different matter: providers with strict structured outputs (OpenAI, Azure, via OpenRouter)
+# reject an object schema without "additionalProperties": false, or a property with no type. The OpenAI SDK keeps
+# the "additionalProperties": true that extra="allow" produces. So each draft's schema is closed and typed like
+# VerifierDecision, while validation stays lenient (extra="allow", Any) for the guardrail to judge.
+_STRING = {"type": "string"}
+_NULLABLE_STRING = {"anyOf": [{"type": "string"}, {"type": "null"}]}
+
+
+def _strict_schema(property_types: dict[str, dict]):
+    """A json_schema_extra hook: close the object and give each listed property its type. Schema only."""
+    def apply(schema: dict[str, Any], _model: type) -> None:
+        schema["additionalProperties"] = False
+        for name, typ in property_types.items():
+            schema["properties"][name].update(typ)
+    return apply
+
+
 class FindingDraft(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", json_schema_extra=_strict_schema({
+        "finding_id": _STRING, "code": _STRING, "kind": _STRING, "date": _NULLABLE_STRING,
+        "place_id": _NULLABLE_STRING, "rank": {"type": "integer"}, "recommended_action": _STRING,
+        "explanation": _STRING}))
 
     finding_id: Any = None
     code: Any = None
@@ -220,7 +251,8 @@ class FindingDraft(BaseModel):
 
 
 class DecisionDraft(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", json_schema_extra=_strict_schema({
+        "summary": _STRING, "notes": {"items": _STRING}}))
 
     findings: list[FindingDraft] = Field(default_factory=list)
     summary: Any = None
@@ -284,7 +316,7 @@ def _prose_problems(where: str, text, ctx: VerifierContext, *, kind: str | None 
     if _VERIFIED_CLAIM.search(text):
         bad(f"claims the plan passes or is verified; the report is {ctx.report.status} and verified="
             f"{str(ctx.report.verified).lower()}, decided by Python")
-    if kind == "missing_evidence" and _CERTAINTY.search(text):
+    if kind == "missing_evidence" and _states_certainty(text):
         bad("states a missing-evidence finding as certain; say what is unknown and which lookup would settle it")
     for d in _ISO_DATE.findall(text):
         if d not in {str(x) for x in ctx.dates}:
@@ -734,6 +766,21 @@ def explain_verification(report: VerificationReport, llm: BaseLLM | str) -> Veri
         llm_usage={k: getattr(usage, k, 0) for k in
                    ("successful_requests", "prompt_tokens", "completion_tokens", "total_tokens")},
         guardrail_rejections=list(ctx.rejections), **common)
+
+
+AGENT_FAILED_SUMMARY = ("The Verifier agent gave no valid explanation, so Python's own ranking of its findings is "
+                        "shown. The verdict is Python's either way.")
+
+
+def python_explanation(error: VerifierAgentError) -> VerifierAgentReport:
+    """When the agent fails, the verdict does not: Python's VerificationReport with Python's ranking, said to be
+    Python's (decided_by "python"), and the failed attempts kept for diagnosis. Never a PASS that was not one."""
+    report, ctx = error.verification, VerifierContext(error.verification)
+    return VerifierAgentReport(status=report.status, verified=report.verified, headline=headline(report),
+                               verification=report, revision_targets=report.revision_targets,
+                               tool_evidence=report.tool_evidence, citations=report.citations, decided_by="python",
+                               prioritized=_python_ranking(ctx), summary=AGENT_FAILED_SUMMARY,
+                               agent_tool_calls=list(error.tool_calls), guardrail_rejections=list(error.rejections))
 
 
 def run_verifier_agent(itinerary, research_bundle: ResearchBundle, llm: BaseLLM | str, *,

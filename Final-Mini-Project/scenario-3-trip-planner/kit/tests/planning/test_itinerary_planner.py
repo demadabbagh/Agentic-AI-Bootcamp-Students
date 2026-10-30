@@ -278,7 +278,7 @@ def test_travel_lookups_are_cached_and_capped_per_request():
     assert len(report.travel_lookups) == 3  # the cap held: later legs were not looked up
     skipped = [e for e in report.evidence if e.travel_status == "not_looked_up"]
     assert skipped and all(e.travel_minutes is None and e.buffer_minutes == 30 for e in skipped)
-    assert DEFAULT_MAX_LOOKUPS == 20
+    assert DEFAULT_MAX_LOOKUPS == 40  # a six-day plan has about 18 legs
 
 
 # ------------------------------------------------------------------ prompt hygiene
@@ -301,7 +301,7 @@ def test_agent_and_task_are_wired_for_structured_output_with_a_read_only_tool():
     tool = CheckDayTool(ctx)
     agent = build_planner_agent(ScriptedLLM(model="scripted-test"), tool)
     task = build_planner_task(agent, ctx)
-    assert agent.role == "Itinerary Planner" and not agent.allow_delegation and agent.max_iter == 8
+    assert agent.role == "Itinerary Planner" and not agent.allow_delegation and agent.max_iter == 5
     assert [t.name for t in agent.tools] == ["check_day"]
     assert task.output_pydantic is DayAssignment and task.guardrail is not None and task.guardrail_max_retries == 2
 
@@ -341,19 +341,23 @@ def test_the_final_assignment_is_validated_independently_of_the_checks():
         assign(VALID).model_dump_json()])  # then answered a full plan it never checked
     report = plan_itinerary(budget_report(b), b, llm, recorded_lookup())
     assert report.agent_tool_calls[0]["place_ids"] == [HAGIA]
-    assert acts(report, MON)[1] == (TOPKAPI, "10:45", "12:15")  # Python scheduled the final plan itself
+    # Python scheduled the final plan itself (and may visit Monday's same places in an order that walks less)
+    assert sorted(a for a, *_ in acts(report, MON)) == sorted(VALID[MON])
     no_overlaps(report)
 
 
-def test_guardrail_sends_a_closed_day_assignment_back_and_uses_the_retry():
+def test_a_closed_day_assignment_is_repaired_by_python_without_a_retry():
+    """Topkapı on its closed Tuesday: Python moves it to an open date itself; no second paid call."""
     b = bundle()
     bad = assign({MON: [HAGIA, CISTERN, ALI_USTA], TUE: [TOPKAPI, SULEYMANIYE, BAZAAR], WED: [DOLMABAHCE, PERA]})
     llm = NativeScriptedLLM(model="scripted-test", replies=[
         native_tool_call("check_day", {"date": MON, "place_ids": VALID[MON]}), bad.model_dump_json(),
         assign(VALID).model_dump_json()])
     report = plan_itinerary(budget_report(b), b, llm, recorded_lookup())
-    assert "is closed on 2026-11-03 (Tue)" in text(llm.prompts[-1])
+    assert len(llm.prompts) == 2 and llm.replies  # the tool call and the answer: no retry
     assert report.status == "complete" and TOPKAPI in report.scheduled_place_ids
+    assert TOPKAPI not in [a for a, *_ in acts(report, TUE)]
+    assert any("closed on 2026-11-03 (Tue): moved" in r for r in report.repairs)
 
 
 def test_malformed_answer_then_valid_answer():
@@ -370,8 +374,22 @@ def test_still_invalid_after_the_retries_is_an_error_not_a_guess():
     b = bundle()
     llm = ScriptedLLM(model="scripted-test", replies=["Thought: done\nFinal Answer: Day 1 Topkapi, Day 2 bazaar"] * 20)
     with pytest.raises(ItineraryPlannerError, match="no valid assignment"):
-        plan_itinerary(budget_report(b), b, llm, recorded_lookup())
+        plan_itinerary(budget_report(b), b, llm, recorded_lookup(), fallback=False)
     assert 3 <= len(llm.prompts) <= 6 and llm.replies  # CrewAI stopped by itself
+
+
+def test_no_usable_answer_falls_back_to_pythons_own_plan_labelled_as_such():
+    """Never a guess and never an unexplained 503: Python's own validated plan, said to be Python's."""
+    b = bundle()
+    llm = ScriptedLLM(model="scripted-test", replies=["Thought: done\nFinal Answer: Day 1 Topkapi, Day 2 bazaar"] * 20)
+    report = plan_itinerary(budget_report(b), b, llm, recorded_lookup())
+    assert report.decided_by == "python_fallback" and report.performance["decided_by"] == "python_fallback"
+    assert any(w.startswith("The planning agent gave no usable answer, so this is Python's own plan") for w in
+               report.warnings)
+    ids = [i for d in report.assignment.days for i in d.place_ids] + [u.place_id for u in report.assignment.unscheduled]
+    assert sorted(ids) == sorted(SELECTED)  # every selected place exactly once
+    assert TOPKAPI in report.scheduled_place_ids and report.verified is False
+    no_overlaps(report)
 
 
 def test_instructions_and_research_data_are_kept_apart_in_the_prompt():
@@ -407,8 +425,9 @@ def test_guardrail_reads_raw_text():
 
     ok, value = guard(RawOnly("Final: " + assign(VALID).model_dump_json()))
     assert ok and isinstance(value, DayAssignment)
-    ok, feedback = guard(RawOnly(assign({**VALID, WED: [DOLMABAHCE]}).model_dump_json()))
-    assert not ok and "not accounted for" in feedback
+    ok, fixed = guard(RawOnly(assign({**VALID, WED: [DOLMABAHCE]}).model_dump_json()))
+    assert ok and PERA in [i for d in fixed.days for i in d.place_ids]  # Python placed the forgotten place
+    assert any(n.startswith("not accounted for by the planner, placed by Python") for n in ctx.repairs)
 
 
 def test_planner_trace_reads_both_message_formats_and_keeps_no_prompt_text():
@@ -515,16 +534,23 @@ def test_repair_never_drops_a_required_place():
     ctx = context()  # Topkapı on its closed Tuesday and in unscheduled: keeping "unscheduled" would drop it
     a = assign({MON: [HAGIA, CISTERN, ALI_USTA], TUE: [TOPKAPI, SULEYMANIYE, BAZAAR], WED: [DOLMABAHCE, PERA]},
                {TOPKAPI: "Closed"})
-    ok, message = make_guardrail(ctx)(a.model_dump_json())
-    assert not ok and ctx.repairs == []
-    assert f"{TOPKAPI} appears 2 times (2026-11-03, unscheduled)" in message
-    assert "delete it from 2026-11-03 and put it on exactly one of: 2026-11-02, 2026-11-04" in message
+    ok, accepted = make_guardrail(ctx)(a.model_dump_json())
+    assert ok and TOPKAPI not in [u.place_id for u in accepted.unscheduled]  # never dropped
+    placed = {i: str(d.date) for d in accepted.days for i in d.place_ids}
+    assert placed[TOPKAPI] in (MON, WED)  # an open date, never its closed Tuesday
+    assert any("closed on 2026-11-03 (Tue): moved" in n for n in ctx.repairs)
 
 
-def test_a_repair_that_fails_scheduling_is_not_accepted():
-    ctx = context(rules=ScheduleRules(day_end="13:00"))  # the repaired Monday would not fit
-    ok, message = make_guardrail(ctx)(live_failure().model_dump_json())
-    assert not ok and ctx.repairs == [] and message.startswith("ONE-TIME RULE")
+def test_a_repair_never_accepts_a_day_that_does_not_fit():
+    """Short planning days (until 13:00): what does not fit moves to another date or is unscheduled with
+    Python's reason; the accepted answer passes the full validation, scheduling included."""
+    from planning.itinerary_planner import assignment_problems
+    ctx = context(rules=ScheduleRules(day_end="13:00"))
+    ok, accepted = make_guardrail(ctx)(live_failure().model_dump_json())
+    assert ok and assignment_problems(accepted, ctx) == []
+    ids = [i for d in accepted.days for i in d.place_ids] + [u.place_id for u in accepted.unscheduled]
+    assert sorted(ids) == sorted(SELECTED)
+    assert all(u.reason.startswith("Python: ") for u in accepted.unscheduled)
 
 
 def test_build_itinerary_itself_never_repairs():
@@ -552,37 +578,37 @@ def test_live_failure_pattern_is_repaired_on_the_first_answer(native):
     report = plan_itinerary(budget_report(b), b, llm, recorded_lookup())
     assert len(llm.prompts) == 1  # no retry needed, no extra cost
     assert report.status == "complete" and sum(": kept " in n for n in report.repairs) == 8
-    assert any(w.startswith("The planner listed some places more than once") for w in report.warnings)
+    assert any(w.startswith("Python adjusted the day plan and checked the result") for w in report.warnings)
     ids = [i for d in report.assignment.days for i in d.place_ids]
     assert len(ids) == len(set(ids)) == 8 and TOPKAPI in ids  # the report keeps the repaired assignment
     no_overlaps(report)
 
 
 @pytest.mark.parametrize("native", [True, False])
-def test_unrepairable_answer_gets_grouped_feedback_and_the_corrected_answer_is_used(native):
+def test_duplicates_and_a_missing_place_are_repaired_on_the_first_answer(native):
+    """The Paris live failure: duplicates AND a missing place used to exhaust the retries (HTTP 503). Python
+    keeps each place once, places the missing one, and checks the result: one paid call."""
     b = bundle()
     bad, good = live_failure(drop=(BAZAAR,)).model_dump_json(), assign(VALID).model_dump_json()
     llm = (NativeScriptedLLM(model="scripted-test", replies=[bad, good]) if native else
            ScriptedLLM(model="scripted-test", replies=[f"Final Answer: {bad}", f"Final Answer: {good}"]))
     report = plan_itinerary(budget_report(b), b, llm, recorded_lookup())
-    retry = text(llm.prompts[1])
-    assert "ONE-TIME RULE" in retry and f"{ALI_USTA} appears 3 times" in retry and "### Previous result" in retry
-    assert f"not accounted for: {BAZAAR}" in retry
-    assert report.status == "complete" and report.repairs == []
-    assert acts(report, MON)[1] == (TOPKAPI, "10:45", "12:15")  # Python scheduled the corrected answer itself
+    assert len(llm.prompts) == 1 and report.status == "complete"
+    assert any("placed by Python" in r and "Grand Bazaar" in r for r in report.repairs)
+    ids = [i for d in report.assignment.days for i in d.place_ids]
+    assert len(ids) == len(set(ids)) == 8 and BAZAAR in ids
+    no_overlaps(report)
 
 
-def test_repeated_duplicates_still_end_in_an_explicit_error():
+def test_the_problems_python_repaired_are_still_recorded_by_kind():
+    """Diagnostics keep what was wrong with the agent's answer, even though no retry was needed."""
     b = bundle()
     bad = f"Final Answer: {live_failure(drop=(BAZAAR,)).model_dump_json()}"
     llm = ScriptedLLM(model="scripted-test", replies=[bad] * 20)
-    with pytest.raises(ItineraryPlannerError, match="no valid assignment") as failure:
-        plan_itinerary(budget_report(b), b, llm, recorded_lookup())
-    assert 3 <= len(llm.prompts) <= 6
-    # The error keeps the evidence CrewAI does not: every rejection, by problem kind, with the duplicated ids.
-    assert len(failure.value.rejections) == 3
-    assert failure.value.rejections[0]["problems"] == {"duplicate": 7, "missing": 1}
-    assert ALI_USTA in failure.value.rejections[0]["duplicated_ids"] and failure.value.tool_calls == []
+    report = plan_itinerary(budget_report(b), b, llm, recorded_lookup())
+    assert len(llm.prompts) == 1
+    assert report.performance["rejections"] == ["duplicate", "missing"]
+    assert report.performance["attempts"] == 1 and report.decided_by in ("agent", "python")
 
 
 def test_dates_are_trip_dates_in_order():

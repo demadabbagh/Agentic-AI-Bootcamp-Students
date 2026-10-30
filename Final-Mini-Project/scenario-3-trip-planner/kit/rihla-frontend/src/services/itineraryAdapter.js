@@ -1,5 +1,27 @@
-const FALLBACK_IMAGE =
+export const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=500&q=85'
+
+export function formatDate(value) {
+  if (!value) return ''
+
+  const date = new Date(`${value}T12:00:00`)
+  if (Number.isNaN(date.getTime())) return value
+
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
+export function formatMoney(value, currency) {
+  if (!Number.isFinite(value)) return 'Not specified'
+
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency || 'USD',
+    maximumFractionDigits: 2,
+  }).format(value)
+}
 
 function formatTime(value) {
   if (!value) return 'Flexible time'
@@ -49,18 +71,9 @@ export function normalizeItinerary(itinerary) {
   const currency = itinerary.currency || 'USD'
 
   return itinerary.days.map((day, index) => {
-    const date = new Date(`${day.date}T12:00:00`)
-
-    const formattedDate = Number.isNaN(date.getTime())
-      ? day.date
-      : date.toLocaleDateString('en-US', {
-          month: 'long',
-          day: 'numeric',
-        })
-
     return {
       label: `Day ${String(index + 1).padStart(2, '0')}`,
-      date: formattedDate,
+      date: formatDate(day.date),
       title: `Explore ${itinerary.destination || 'your destination'}`,
       activities: (day.activities || []).map((activity) => ({
         name: activity.name,
@@ -74,4 +87,25 @@ export function normalizeItinerary(itinerary) {
       })),
     }
   })
+}
+
+// Everything the Dashboard shows about a real trip, taken from the
+// backend itinerary (Trip Store shape) rather than from form input.
+export function buildTripView(itinerary) {
+  const days = itinerary.days
+
+  return {
+    destination: itinerary.destination,
+    startDate: days[0]?.date || null,
+    endDate: days[days.length - 1]?.date || null,
+    travellers: itinerary.travellers ?? null,
+    currency: itinerary.currency || 'USD',
+    budgetTotal: itinerary.budget_total ?? null,
+    estimatedTotal: itinerary.estimated_total ?? null,
+    unknownCostCount: days.reduce(
+      (count, day) => count + (day.activities || []).filter((a) => !Number.isFinite(a.estimated_cost)).length,
+      0
+    ),
+    days: normalizeItinerary(itinerary),
+  }
 }
