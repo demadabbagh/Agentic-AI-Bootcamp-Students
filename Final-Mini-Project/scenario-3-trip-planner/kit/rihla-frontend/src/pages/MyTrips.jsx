@@ -4,6 +4,8 @@ import {
   ArrowRight,
   CalendarDays,
   Compass,
+  Download,
+  FlaskConical,
   MapPin,
   Plane,
   Plus,
@@ -16,10 +18,13 @@ import {
   Users,
   Wallet,
 } from 'lucide-react'
-import { deleteSavedTrip, getSavedTrip, listSavedTrips, summarizeSavedTrip } from '../services/savedTrips'
+import {
+  deleteSavedTrip, getSavedTrip, listSavedTrips, loadSampleTrips, removeSampleTrips, summarizeSavedTrip,
+} from '../services/savedTrips'
+import { pdfInputFromResult } from '../services/tripExport'
 import { FALLBACK_IMAGE, formatDate, formatMoney } from '../services/itineraryAdapter'
 
-const FILTERS = ['All Trips', 'Verified', 'Not verified']
+const FILTERS = ['All Trips', 'Verified', 'Not verified', 'Samples']
 
 function loadTrips() {
   return listSavedTrips().map(summarizeSavedTrip)
@@ -41,7 +46,8 @@ export default function MyTrips() {
     const matchesSearch = trip.destination.toLowerCase().includes(search.trim().toLowerCase())
     const matchesStatus =
       activeFilter === 'All Trips'
-      || (activeFilter === 'Verified' ? trip.verified : !trip.verified)
+      || (activeFilter === 'Samples' ? trip.sample
+        : activeFilter === 'Verified' ? trip.verified : !trip.verified)
 
     return matchesSearch && matchesStatus
   })
@@ -54,12 +60,57 @@ export default function MyTrips() {
       return
     }
     navigate('/trip', {
-      state: { ...entry.request, sessionId: entry.id, aiResult: entry.aiResult, fromSaved: true },
+      state: {
+        ...entry.request,
+        sessionId: entry.id,
+        aiResult: entry.aiResult,
+        fromSaved: true,
+        ...(entry.sample ? { sampleTrip: true, sampleLabel: entry.sampleLabel } : {}),
+      },
     })
   }
 
+  const handleLoadSamples = () => {
+    setError('')
+    try {
+      loadSampleTrips()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sample trips could not be loaded.')
+    }
+    setTrips(loadTrips())
+  }
+
+  const handleRemoveSamples = () => {
+    setError('')
+    try {
+      removeSampleTrips()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sample trips could not be removed.')
+    }
+    if (activeFilter === 'Samples') setActiveFilter('All Trips')
+    setTrips(loadTrips())
+  }
+
+  const downloadPdf = async (id) => {
+    setError('')
+    const entry = getSavedTrip(id)
+    if (!entry) return
+    try {
+      const { downloadTripPdf } = await import('../services/tripPdf')
+      downloadTripPdf(pdfInputFromResult(entry.aiResult, {
+        sampleLabel: entry.sample ? entry.sampleLabel : null,
+        marks: { draftAcceptedAt: entry.draftAcceptedAt, backendApproval: entry.backendApproval },
+      }))
+    } catch {
+      setError('The PDF could not be created in this browser.')
+    }
+  }
+
+  const samplesLoaded = trips.some((t) => t.sample)
+
   const removeTrip = (trip) => {
-    if (!window.confirm(`Delete your ${trip.destination} trip from this browser? This cannot be undone.`)) return
+    const what = trip.sample ? `the sample ${trip.destination} trip` : `your ${trip.destination} trip`
+    if (!window.confirm(`Delete ${what} from this browser? This cannot be undone.`)) return
     setError('')
     try {
       deleteSavedTrip(trip.id)
@@ -166,6 +217,30 @@ export default function MyTrips() {
           />
         </div>
 
+        {/* SAMPLE TRIPS: demo data, only on request, always labelled */}
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          {!samplesLoaded ? (
+            <button
+              type="button"
+              onClick={handleLoadSamples}
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+            >
+              <FlaskConical size={17} /> Load Sample Trips
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleRemoveSamples}
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+            >
+              <Trash2 size={17} /> Remove sample trips
+            </button>
+          )}
+          <span className="text-xs text-[#8297a0]">
+            Sample trips are demo data for previewing this page. Your own saved trips are never changed.
+          </span>
+        </div>
+
         {/* TRIP FILTERS */}
         <div className="mb-8 flex flex-wrap gap-3">
           {FILTERS.map((filter) => (
@@ -208,27 +283,49 @@ export default function MyTrips() {
 
                   <div className="absolute inset-0 bg-gradient-to-t from-[#102f3b]/60 via-transparent to-transparent" />
 
-                  <span
-                    className={`absolute left-5 top-5 flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-bold backdrop-blur-xl ${
-                      trip.verified
-                        ? 'border-emerald-200 bg-emerald-50/90 text-emerald-700'
-                        : 'border-amber-200 bg-amber-50/90 text-amber-700'
-                    }`}
-                  >
-                    {trip.verified ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
-                    {trip.verified ? 'Verified' : 'Not verified'}
-                  </span>
+                  <div className="absolute left-5 top-5 flex flex-wrap gap-2">
+                    {trip.sample && (
+                      <span className="flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-bold text-white">
+                        <FlaskConical size={14} /> SAMPLE
+                      </span>
+                    )}
+                    <span
+                      className={`flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-bold backdrop-blur-xl ${
+                        trip.verified
+                          ? 'border-emerald-200 bg-emerald-50/90 text-emerald-700'
+                          : 'border-amber-200 bg-amber-50/90 text-amber-700'
+                      }`}
+                    >
+                      {trip.verified ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
+                      {trip.verified ? 'AI verified' : 'Not verified'}
+                    </span>
+                    {trip.backendApproved && (
+                      <span className="rounded-full border border-emerald-300 bg-emerald-600 px-4 py-2 text-xs font-bold text-white">
+                        Approved
+                      </span>
+                    )}
+                    {!trip.backendApproved && trip.draftAccepted && (
+                      <span className="rounded-full border border-[#b8d9dd] bg-white/90 px-4 py-2 text-xs font-bold text-[#245c6a]">
+                        Draft accepted by you
+                      </span>
+                    )}
+                  </div>
 
                   <div className="absolute bottom-5 left-6 text-white">
                     <p className="mb-1 flex items-center gap-1.5 text-xs text-white/85">
                       <MapPin size={14} />
-                      Saved {new Date(trip.savedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {trip.sample ? 'Sample · added' : 'Saved'} {new Date(trip.savedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </p>
                     <h3 className="text-3xl font-bold">{trip.destination}</h3>
                   </div>
                 </div>
 
                 <div className="p-6">
+                  {trip.sample && (
+                    <p className="mb-4 rounded-xl bg-slate-100 px-3 py-2 text-xs leading-5 text-slate-700">
+                      {trip.sampleLabel}
+                    </p>
+                  )}
                   <div className="grid grid-cols-2 gap-4 text-sm text-[#6f8993]">
                     <div className="flex items-center gap-2">
                       <CalendarDays size={17} className="text-[#65aab3]" />
@@ -271,6 +368,16 @@ export default function MyTrips() {
 
                     <button
                       type="button"
+                      onClick={() => downloadPdf(trip.id)}
+                      aria-label={`Download ${trip.destination} trip as PDF`}
+                      title="Download PDF"
+                      className="rounded-xl bg-[#edf5f6] p-3 text-[#245c6a] transition hover:bg-[#e1eff1]"
+                    >
+                      <Download size={18} />
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => removeTrip(trip)}
                       aria-label={`Delete ${trip.destination} trip`}
                       title="Delete from this browser"
@@ -292,7 +399,7 @@ export default function MyTrips() {
             <p className="mt-2 text-sm text-[#8297a0]">
               {trips.length
                 ? 'Try another destination or filter.'
-                : 'Plan a trip, then press "Save trip to this browser" on the itinerary page.'}
+                : 'Plan a trip, then press "Save trip to this browser" on the itinerary page. To preview this page, use "Load Sample Trips".'}
             </p>
           </div>
         )}
