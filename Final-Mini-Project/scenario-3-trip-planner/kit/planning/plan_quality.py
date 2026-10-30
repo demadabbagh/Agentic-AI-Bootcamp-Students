@@ -140,7 +140,7 @@ def assess_quality(schedule: TripSchedule, stops: Mapping[str, Stop], rules: Sch
     limit = rules.max_walk_minutes or q.long_walk_minutes
     for d in days:
         for s in d.scheduled[1:]:
-            if s.travel is None or s.travel.status != "measured" or s.travel.minutes <= limit:
+            if s.travel is None or s.travel.status != "measured" or s.travel.mode != "foot" or s.travel.minutes <= limit:
                 continue
             better = _better_order(d, s.place_id, limit, stops, rules, travel)
             if better:

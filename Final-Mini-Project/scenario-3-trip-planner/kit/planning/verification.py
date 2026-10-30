@@ -84,7 +84,9 @@ IssueCode = Literal[
     "source_missing", "source_mismatch", "citation_missing", "route_citation_missing", "place_name_mismatch",
     "research_tool_failure",
     "planner_no_itinerary", "planner_itinerary_differs", "planner_reported_partial", "planner_reported_infeasible",
-    "planner_status_inconsistent"]
+    "planner_status_inconsistent",
+    "duplicate_identity", "event_outside_dates", "location_far", "ride_planned", "interest_not_covered",
+    "day_overloaded", "day_without_sightseeing"]
 
 CODES: dict[str, tuple[str, str, str]] = {
     "invalid_itinerary": ("itinerary", "error", "rebuild_itinerary"),
@@ -143,9 +145,45 @@ CODES: dict[str, tuple[str, str, str]] = {
     "planner_reported_partial": ("planner_report", "warning", "none"),
     "planner_reported_infeasible": ("planner_report", "warning", "ask_traveller"),
     "planner_status_inconsistent": ("planner_report", "error", "rebuild_itinerary"),
+    # the same real place under two names (a city page's summary of a district listing): visited twice
+    "duplicate_identity": ("places", "error", "remove_activity"),
+    # an event whose own listing names only months outside the trip: it does not happen while the traveller is there
+    "event_outside_dates": ("places", "error", "remove_activity"),
+    # far from every other researched place of the destination: perhaps another town with the same name
+    "location_far": ("places", "warning", "none"),
+    # a walk over the limit, measured by car instead: the plan uses a taxi or car, with no fare included
+    "ride_planned": ("travel", "warning", "none"),
+    "interest_not_covered": ("itinerary", "warning", "none"),
+    "day_overloaded": ("schedule", "warning", "move_activity"),
+    "day_without_sightseeing": ("schedule", "warning", "none"),
 }
 
+FAR_KM = 50  # a planned place this far from the middle of the destination's researched places is questioned
+MAX_SIGHTS_PER_DAY = 5
+MAX_BUSY_MINUTES = 9 * 60
+
 HoursLookup = Callable[[str], dict]  # place_name -> a get_opening_hours result, city bound
+
+_GENERIC_WORDS = {"musee", "museum", "palais", "palace", "eglise", "church", "place", "parc", "park", "jardin",
+                  "garden", "gardens", "the", "and", "saint", "street", "market", "temple", "house", "castle"}
+
+
+def _km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    import math
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    h = (math.sin((p2 - p1) / 2) ** 2 +
+         math.cos(p1) * math.cos(p2) * math.sin(math.radians(lon2 - lon1) / 2) ** 2)
+    return 2 * 6371.0 * math.asin(math.sqrt(min(1.0, h)))
+
+
+def _same_real_place(a, b) -> bool:
+    """Two listings of one real place: within about 80 m and sharing a distinctive word of the name."""
+    if a is None or b is None or None in (a.lat, a.lon, b.lat, b.lon) or a.place_id == b.place_id:
+        return False
+    if _km(a.lat, a.lon, b.lat, b.lon) > 0.08:
+        return False
+    words = lambda n: {w for w in re.findall(r"[a-z0-9]+", fold(n)) if len(w) > 3} - _GENERIC_WORDS
+    return bool(words(a.name) & words(b.name))
 
 
 def freshness_of(result: dict | None) -> Freshness:
@@ -406,6 +444,7 @@ class _Route(NamedTuple):
     profile: str | None
     citation: dict | None
     evidence: Evidence | None
+    walk_minutes: int | None = None  # a ride: the measured walk it replaces
 
 
 def _route_evidence(result: dict, freshness: Freshness, source: str = "travel_time") -> Evidence:
@@ -674,8 +713,10 @@ class _Verifier:
         if result is not None and _ok(result) and isinstance(result.get("duration_min"), int) \
                 and not isinstance(result.get("duration_min"), bool) and result["duration_min"] >= 0:
             f = freshness_of(result)
+            walk = result.get("walk_duration_min")
             out = _Route(result["duration_min"], f, result.get("profile"), result.get("citation"),
-                         _route_evidence(result, f))
+                         _route_evidence(result, f),
+                         walk if isinstance(walk, int) and not isinstance(walk, bool) else None)
         else:
             if result is not None:
                 self.add("route_lookup_failed", f"The travel-time lookup {prev.label} -> {cur.label} failed "
@@ -730,6 +771,11 @@ class _Verifier:
                 if claim is not None and claim != r.minutes:
                     self.add("travel_minutes_mismatch", f"{cur.label} on {date} says {claim} minutes of travel, the "
                              f"measured time is {r.minutes}.", evidence=ev, **where)
+                if r.profile == "driving" and r.walk_minutes is not None:
+                    self.add("ride_planned", f"The walk to {cur.label} on {date} would take {r.walk_minutes} "
+                             f"minutes, so the plan uses a taxi or car ({r.minutes} minutes, OSRM driving time "
+                             "without traffic; the fare is not in the budget).", evidence=ev, **where)
+                    continue
                 if limit:
                     if r.profile not in (None, "foot"):
                         self.add("walk_unverified", f"The travel time to {cur.label} on {date} is a {r.profile} "
@@ -737,6 +783,59 @@ class _Verifier:
                     elif r.minutes > limit:
                         self.add("walk_over_limit", f"The walk to {cur.label} on {date} takes {r.minutes} minutes, "
                                  f"over the {limit}-minute limit.", evidence=ev, **where)
+
+    # -------------------------------------------------- identity, dates and content of the planned places
+    def check_content(self, visits: list[_Visit]) -> None:
+        """Checks on what the places are: the same place twice under two names, an event outside its dates, a
+        place far from the destination, an interest nothing serves, and how full each day is. Facts from the
+        research listings only (tags, coordinates, the listing's own text): no LLM, no guess."""
+        from .budget_analyst import event_outside_trip
+        places = [p for p in self.bundle.places if p.lat is not None and p.lon is not None]
+        seen: list[_Visit] = []
+        for v in visits:
+            p = v.place
+            if p is None:
+                continue
+            if (why := event_outside_trip(p, self.trip)) is not None:
+                self.add("event_outside_dates", f"{v.label} on {v.date}: {why}.", date=v.date, place_id=v.place_id)
+            twin = next((o for o in seen if o.key != v.key and _same_real_place(o.place, p)), None)
+            if twin is not None:
+                self.add("duplicate_identity", f"{v.label} ({v.date}) and {twin.label} ({twin.date}) are the same "
+                         "place under two names (same spot, same name).", date=v.date, place_id=v.place_id,
+                         related_place_id=twin.place_id)
+            seen.append(v)
+        if len(places) >= 3:
+            mid_lat = sorted(p.lat for p in places)[len(places) // 2]
+            mid_lon = sorted(p.lon for p in places)[len(places) // 2]
+            for v in visits:
+                p = v.place
+                if p is not None and p.lat is not None and p.lon is not None:
+                    d = _km(p.lat, p.lon, mid_lat, mid_lon)
+                    if d > FAR_KM:
+                        self.add("location_far", f"{v.label} is {round(d)} km from the middle of "
+                                 f"{self.trip.destination}'s researched places: check it is the right place.",
+                                 date=v.date, place_id=v.place_id)
+        sights = [v for v in visits if v.activity.kind not in ("eat", "drink")]
+        researched = {t for p in self.bundle.places for t in p.tags}
+        for tag in self.trip.interests:
+            if tag not in researched:  # nothing in the research carries it: the Budget Analyst says so already
+                continue
+            pool = visits if tag == "food" else sights  # a meal serves food, never another interest
+            if not any(v.place is not None and tag in v.place.tags for v in pool):
+                self.add("interest_not_covered", f"The research has places for the interest '{tag}', but none "
+                         "is planned.")
+        days = self.sorted_days(visits)
+        counts = {d: sum(v.activity.kind not in ("eat", "drink") for v in day) for d, day in days.items()}
+        for date, day in days.items():
+            busy = sum(v.end - v.start for v in day if v.timed)  # time at the places, not the span with breaks
+            if counts[date] > MAX_SIGHTS_PER_DAY or busy > MAX_BUSY_MINUTES:
+                self.add("day_overloaded", f"{date} has {counts[date]} sightseeing places and {busy // 60} h "
+                         f"{busy % 60} min of visits: a lot for one day.", date=date)
+        if counts and max(counts.values()) >= 2:
+            for date in trip_dates(self.trip):
+                if not counts.get(date):
+                    self.add("day_without_sightseeing", f"{date} has no sightseeing place while other days have "
+                             "several.", date=date)
 
     # -------------------------------------------------- money: the totals and each activity's cost
     def check_budget(self, it: Itinerary, summary: BudgetSummary, claimed_total) -> None:
@@ -1004,6 +1103,7 @@ def verify_itinerary(itinerary: Itinerary | dict | None, bundle: ResearchBundle,
     v.check_schedule(visits)
     v.check_hours(visits)
     v.check_travel(visits)
+    v.check_content(visits)
     summary = summarize(itinerary)
     v.check_budget(itinerary, summary, claimed_total)
     v.check_costs(itinerary, visits)

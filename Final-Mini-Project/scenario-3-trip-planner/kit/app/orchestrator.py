@@ -5,7 +5,7 @@ from app.coordinator import understand_trip_request
 from app.memory import get_session, update_trip_details
 from app.mock_agents import research_trip, plan_trip, verify_trip
 from app.planning_adapter import run_planning_pipeline, create_planning_llm
-from app.mcp_lookup_adapter import create_hours_lookup, create_travel_lookup
+from app.mcp_lookup_adapter import create_hours_lookup, create_travel_lookup, max_walk_minutes
 from app.verification_adapter import run_verification_pipeline
 from app.revision import RevisionNotAvailableError, revise_itinerary
 from app.verification_loop import verify_with_retries
@@ -62,7 +62,11 @@ def traveller_summary(trip_info: dict, budget_report, planner_report, final_mode
         tags = set(normalize_interests([label]).tags)
         places = [items[i].name for i in items if i in scheduled and tags & set(items[i].serves)
                   and items[i].category == "attraction"]
-        coverage.append({"interest": label, "supported": bool(tags), "scheduled": len(places), "places": places})
+        # A planned restaurant serves food (and only food): counted for that interest, said to be a meal.
+        meals = [items[i].name for i in items if i in scheduled and "food" in tags and "food" in items[i].serves
+                 and items[i].category == "restaurant"]
+        coverage.append({"interest": label, "supported": bool(tags), "scheduled": len(places) + len(meals),
+                         "places": places, "meals": meals})
     limitations = []
     for line in (budget_report.warnings if budget_report else []):
         if line.startswith(("No planned place serves", "No usable price")) or line == SCOPE_NOTE:
@@ -81,12 +85,66 @@ def traveller_summary(trip_info: dict, budget_report, planner_report, final_mode
             "planned_by": getattr(planner_report, "decided_by", None),
             "days": [{"date": str(d.date), "activities": [
                 {"name": a.name, "kind": a.kind, "start": a.start_time, "end": a.end_time,
-                 "meal": a.kind in ("eat", "drink"), "walk_minutes": a.travel_minutes_from_previous}
+                 "meal": a.kind in ("eat", "drink"), "travel_minutes": a.travel_minutes_from_previous,
+                 "travel_mode": a.travel_mode_from_previous,
+                 "walk_minutes": a.travel_minutes_from_previous if a.travel_mode_from_previous != "driving" else None}
                 for a in d.activities]} for d in getattr(model, "days", None) or []],
             "sightseeing_per_day": [sum(a.kind not in ("eat", "drink") for a in d.activities)
                                     for d in getattr(model, "days", None) or []],
             "meals_per_day": [sum(a.kind in ("eat", "drink") for a in d.activities)
                               for d in getattr(model, "days", None) or []]}
+
+
+VERIFICATION_STATES = {
+    "error": "confirmed_problem",  # an actual contradiction or an invalid plan: must be repaired
+    "unknown": "unverifiable",  # evidence is missing: disclosed, never guessed
+    "warning": "advice",  # true, but no change is needed
+}
+
+
+def verification_summary(verification_result: dict | None) -> dict | None:
+    """The final verification as data the dashboard can show: Python's verdict, never an LLM's.
+
+    `state` is confirmed_valid only for PASS on fresh evidence; PASS on recorded data is supported_by_records;
+    UNKNOWN is unverifiable; FAIL is confirmed_problem. Each finding keeps its code, check, date, place and the
+    recommended action, and says whether it is a confirmed problem, unverifiable or advice."""
+    if not isinstance(verification_result, dict):
+        return None
+    revision = verification_result.get("revision_report")
+    verifier = verification_result.get("verifier_report")
+    report = (revision.result.final if revision is not None and getattr(revision.result, "final", None) is not None
+              else getattr(verifier, "verification", None))
+    if report is None:
+        return None
+    state = ("confirmed_valid" if report.status == "PASS" and report.verified else
+             "supported_by_records" if report.status == "PASS" else
+             "confirmed_problem" if report.status == "FAIL" else "unverifiable")
+    findings = [{"code": i.code, "state": VERIFICATION_STATES[i.severity], "check": i.check,
+                 "date": str(i.date) if i.date else None, "place_id": i.place_id,
+                 "related_place_id": i.related_place_id, "explanation": i.explanation,
+                 "recommended_action": i.recommended_action}
+                for i in report.issues + report.unknowns + report.warnings]
+    return {
+        "schema_version": report.schema_version, "status": report.status, "verified": report.verified,
+        "state": state, "evidence_basis": report.evidence_basis,
+        "counts": {"confirmed_problems": len(report.issues), "unverifiable": len(report.unknowns),
+                   "advice": len(report.warnings)},
+        "checks": [{"check": c.check, "status": c.status} for c in report.checks],
+        "findings": findings,
+        "explained_by": getattr(verifier, "decided_by", None),
+        "revision": None if revision is None else {
+            "decided_by": revision.result.decided_by, "attempts": len(revision.result.attempts)
+            if hasattr(revision.result, "attempts") else None},
+        "fresh_lookups": len(report.tool_evidence),
+    }
+
+
+def budget_summary(budget_report) -> dict | None:
+    """The Budget Analyst's money picture and interest coverage, in Python's numbers."""
+    if budget_report is None:
+        return None
+    return {**(budget_report.breakdown or {}), "interest_coverage": dict(budget_report.interest_coverage),
+            "promotions": list(budget_report.promotions), "warnings": list(budget_report.warnings)}
 
 
 def _usage(report) -> dict:
@@ -317,6 +375,10 @@ def orchestrate_trip(
             "message": duration_message,
         }
 
+        # The walking threshold the plan and its checks use, unless the traveller gave one.
+    if trip_info.get("max_walk_minutes") is None:
+        trip_info["max_walk_minutes"] = max_walk_minutes()
+
         # STEP 8: Real Research + Planning Pipeline
     started = time.perf_counter()
     if research_bundle is None:
@@ -358,7 +420,9 @@ def orchestrate_trip(
 
         destination = research_bundle.trip.destination
         hours_lookup = create_hours_lookup(destination)
-        travel_lookup = create_travel_lookup(destination, mode="foot")
+        # Walks over the threshold (the traveller's, else RIHLA_MAX_WALK_MINUTES, 30) are measured by car too.
+        walk_limit = research_bundle.trip.max_walk_minutes or max_walk_minutes()
+        travel_lookup = create_travel_lookup(destination, mode="foot", ride_after_minutes=walk_limit)
         llm = create_planning_llm()
 
         planning_result = run_planning_pipeline(
@@ -498,6 +562,8 @@ def orchestrate_trip(
                 "plan_quality": density.as_dict(),
                 "performance": performance,
                 "summary": summary,
+                "verification": verification_summary(verification_result),
+                "budget": budget_summary(planning_result["budget_report"]),
             }
 
         return {
@@ -515,6 +581,8 @@ def orchestrate_trip(
             "plan_quality": density.as_dict(),
             "performance": performance,
             "summary": summary,
+            "verification": verification_summary(verification_result),
+            "budget": budget_summary(planning_result["budget_report"]),
         }
 
        # STEP 9: Safety fallback
