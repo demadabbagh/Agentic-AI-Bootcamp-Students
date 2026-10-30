@@ -794,6 +794,7 @@ class BudgetReport(BaseModel):
     unaccounted_categories: list[str] = Field(default_factory=lambda: list(UNACCOUNTED_CATEGORIES))
     interest_coverage: dict[str, int] = Field(default_factory=dict)  # trip tag -> planned places that serve it
     promotions: list[str] = Field(default_factory=list)  # what top_up added and why, in Python's words
+    breakdown: dict = Field(default_factory=dict)  # budget_breakdown(): the whole picture, for the dashboard
     rates_used: list[ExchangeRate] = Field(default_factory=list)
     citations: list[dict] = Field(default_factory=list)
     failures: list[ToolFailure] = Field(default_factory=list)
@@ -923,6 +924,56 @@ def _fits(check: SelectionCheck) -> bool | None:
     return {"within_budget": True, "over_budget": False}.get(check.verdict.status)
 
 
+MEALS_PER_DAY = 2  # lunch and dinner: the meals a trip needs besides breakfast
+
+
+def budget_breakdown(cands: CandidateSet, selected: list[PlannedItem], final: SelectionCheck, status: str,
+                     dropped: list[PlannedItem], required_total: Decimal) -> dict:
+    """The money picture in Python's numbers, for the traveller and the dashboard: what is priced, what is free,
+    what is unknown (never counted as zero), what the plan does not cover at all, and how much of the budget is
+    left after the known costs. `confidence` says how complete the priced picture is; it is never "complete"
+    while accommodation and transport are outside the plan. No figure here is estimated by an LLM."""
+    trip, cur = cands.trip, cands.trip.currency
+    by_status = {k: [i for i in selected if i.cost.status == k] for k in ("estimated", "range", "free", "unknown")}
+    priced = len(selected) - len(by_status["unknown"])
+    share = round(priced / len(selected), 2) if selected else None
+    budget = None if trip.budget_total is None else money(trip.budget_total)
+    meals = sum(i.category == "restaurant" for i in selected)
+    suggestions: list[str] = []
+    if status == "infeasible":
+        suggestions.append(f"Raise the budget to at least {_money_text(required_total, cur)} (the places you asked "
+                           "for), plus accommodation and transport, or drop one of those places.")
+    if dropped:
+        need = check_selection(cands, [i.place_id for i in selected + dropped]).known_total
+        if budget is not None and need > budget:
+            suggestions.append(f"A budget of {_money_text(need, cur)} for these entry fees and meals would keep "
+                               + ", ".join(i.name for i in dropped) + ".")
+    if by_status["unknown"]:
+        suggestions.append("Check the prices of " + ", ".join(i.name for i in by_status["unknown"][:5])
+                           + (" and others" if len(by_status["unknown"]) > 5 else "")
+                           + " before you go: the sources give none.")
+    confidence = ("low" if share is None or share < 0.5 or status in ("over_budget", "infeasible")
+                  else "medium" if share < 0.9 or status == "undetermined" else "high")
+    return {
+        "currency": cur, "travellers": trip.travellers, "trip_days": trip.days,
+        "budget_total": None if budget is None else str(budget),
+        "planned_known_total": str(final.known_total), "planned_low_total": str(final.low_total),
+        "remaining_after_known_costs": None if budget is None else str(money(budget - final.known_total)),
+        "status": status,
+        "items": {"priced": len(by_status["estimated"]), "price_range": len(by_status["range"]),
+                  "free": len(by_status["free"]), "unknown_price": len(by_status["unknown"])},
+        "unknown_price_items": [i.name for i in by_status["unknown"]],
+        "priced_share": share,
+        "meals": {"planned": meals, "trip_needs_about": MEALS_PER_DAY * trip.days,
+                  "not_in_plan": max(0, MEALS_PER_DAY * trip.days - meals)},
+        "not_included": list(UNACCOUNTED_CATEGORIES),
+        "confidence": confidence,
+        "confidence_basis": (f"{priced} of {len(selected)} planned places have a price from the sources; "
+                             "accommodation, flights, local transport and other meals are not priced at all."),
+        "suggestions": suggestions,
+    }
+
+
 def interest_coverage(selected: list[PlannedItem], interests: list[str]) -> dict[str, int]:
     """Trip tag -> how many planned places count for it (sightseeing, plus restaurants for food only)."""
     return {t: sum(t in i.serves for i in selected) for t in interests}
@@ -958,13 +1009,18 @@ def top_up(cands: CandidateSet, selected: list[PlannedItem],
                                                         + (f". Analyst: {it.reason}" if it.reason else "")}))
         notes.append(f"{it.name}: added from the optional alternatives ({why}).")
 
-    for tag in interests:
-        if len(sights()) >= high or interest_coverage(selected, interests).get(tag):
-            continue
-        found = next((a for a in pool if a.category == "attraction" and tag in a.serves and fits(a)), None)
-        if found:
-            add(found, f"it serves the interest '{interest_name(tag)}', which no planned place served")
     goal = (low + high) // 2  # about two and a half places per full day: a 6-day trip gets 13 when they exist
+    # A fair share for each interest the traveller chose (13 places, 3 interests: at least 3 each) when the
+    # analyst's alternatives have places that serve it: one interest must not fill the trip.
+    share = max(1, goal // (len(interests) + 1)) if interests else 0
+    for _ in range(share):
+        for tag in interests:
+            have = interest_coverage(selected, interests).get(tag, 0)
+            if len(sights()) >= high or have >= share:
+                continue
+            found = next((a for a in pool if a.category == "attraction" and tag in a.serves and fits(a)), None)
+            if found:
+                add(found, f"it serves the interest '{interest_name(tag)}', which had {have} planned place(s)")
     while len(sights()) < goal:
         cover = interest_coverage(selected, interests)
         options = [a for a in pool if a.category == "attraction" and (a.serves or not interests) and fits(a)]
@@ -1018,7 +1074,12 @@ def apply_decision(cands: CandidateSet, decision: BudgetDecision, *, run: CrewRu
     if infeasible:  # nothing we may drop makes it fit: keep the traveller's places, offer the trade-off
         dropped, keep = keep, []
     while keep and check_selection(cands, required_ids + [i.place_id for i in keep]).verdict.status == "over_budget":
-        dropped.append(keep.pop())  # the agent's lowest-ranked include first
+        # The agent's lowest-ranked include that costs something known: dropping a free place or one with an
+        # unknown price cannot lower the known total, so it would only lose a place for nothing.
+        paid = [n for n, i in enumerate(keep) if i.cost.status != "unknown" and (i.cost.total_max or 0) > 0]
+        if not paid:
+            break
+        dropped.append(keep.pop(paid[-1]))
     # The budget binds when the analyst's own includes had to go: then no alternative is added back.
     selected, alternatives, promotions = ((required + keep, alternatives, []) if dropped or infeasible
                                           else top_up(cands, required + keep, alternatives))
@@ -1050,6 +1111,7 @@ def apply_decision(cands: CandidateSet, decision: BudgetDecision, *, run: CrewRu
         required_not_found=cands.required_not_found,
         unknown_cost_items=[i.name for i in selected if i.cost.status == "unknown"],
         interest_coverage=interest_coverage(selected, trip.interests), promotions=promotions,
+        breakdown=budget_breakdown(cands, selected, final, status, dropped, required_check.known_total),
         range_items=[i.name for i in selected if i.cost.status == "range"],
         rates_used=rates, citations=_citations(selected + optional, rates), failures=cands.failures,
         warnings=_warnings(cands, selected, dropped, status, final.verdict, required_check.known_total,

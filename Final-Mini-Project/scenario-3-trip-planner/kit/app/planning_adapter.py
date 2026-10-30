@@ -44,6 +44,9 @@ def create_planning_llm() -> LLM:
         # A ceiling, not a target: the Budget Analyst decides 30+ places (each with a rank, the interests it
         # serves and a short reason); 1500 cut that answer short in a live Paris run.
         max_tokens=4000,
+        # Bounded waiting: a stuck provider call fails (and is reported) instead of holding the request.
+        timeout=float(os.getenv("RIHLA_LLM_TIMEOUT_SECONDS", "60")),
+        max_retries=int(os.getenv("RIHLA_LLM_MAX_RETRIES", "2")),
     )
 
 

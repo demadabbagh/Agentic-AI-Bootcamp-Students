@@ -45,6 +45,16 @@ class ChatResponse(BaseModel):
     plan_quality: dict[str, Any] | None = None  # app/coverage.py DensityReport.as_dict(): advice, never a gate
     performance: dict[str, Any] | None = None  # per-stage timings, LLM calls and tokens: measured, for display
     summary: dict[str, Any] | None = None  # orchestrator.traveller_summary(): interest coverage and limitations
+    verification: dict[str, Any] | None = None  # orchestrator.verification_summary(): Python's verdict and findings
+    budget: dict[str, Any] | None = None  # orchestrator.budget_summary(): known, unknown and not-included costs
+
+
+class ErrorBody(BaseModel):
+    """The structured part of an error response (next to FastAPI's "detail" string)."""
+    code: str  # llm_timeout | llm_rate_limited | llm_unavailable | planning_failed | internal_error
+    message: str
+    error_id: str
+    retryable: bool
 
 
 class ApproveRequest(BaseModel):

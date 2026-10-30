@@ -160,6 +160,11 @@ class Planner:
     def cap(self, day: dt.date) -> int:
         return self.targets[day] + EXTRA_PER_DAY
 
+    def hard_max(self, day: dt.date) -> int:
+        """Never more sightseeing places on one date than this (4 on a full day, 3 on an arrival or departure
+        day), even when nothing else can take them: a fuller day is not a better one."""
+        return self.cap(day) + 1
+
     def day_score(self, plan: dict[dt.date, list[str]]) -> tuple:
         """Lower is better: empty sightseeing days, then places short of the daily targets (a full day has two
         or three), then walks over the limit, then walking time."""
@@ -182,7 +187,7 @@ def _place(p: Planner, plan: dict[dt.date, list[str]], pid: str, *, exclude: set
         ids = plan[day]
         n = len(p.sights(ids))
         meals = len(ids) - n
-        if not meal and n >= p.cap(day) and not over_cap:
+        if not meal and (n >= p.hard_max(day) or (n >= p.cap(day) and not over_cap)):
             continue
         new = p.insert(day, ids, pid)
         if new is None:
@@ -432,8 +437,9 @@ def complete(a: DayAssignment, ctx: PlanningContext) -> tuple[DayAssignment, lis
             notes.append(f"reordered {day} so every place fits")
             continue
         while plan[day] and not p.best_order(day, plan[day]):
+            rank = list(ctx.stops)  # the Budget Analyst's order: the last is the least important to keep
             drop = max(plan[day], key=lambda i: (not ctx.stops[i].required, p.is_meal(i) is False,
-                                                 ctx.rules.duration_for(p.stop(i))))
+                                                 rank.index(i)))
             plan[day].remove(drop)
             pending.append(drop)
             notes.append(f"{p.stop(drop).name} did not fit on {day}: moved")
@@ -497,6 +503,22 @@ def rebalance(a: DayAssignment, ctx: PlanningContext) -> tuple[DayAssignment, li
                 break
         if not moved:
             break
+    from .itinerary_planner import UnscheduledChoice
+    rank = {pid: n for n, pid in enumerate(ctx.stops)}  # the Budget Analyst's order: required, then by rank
+    for d in ctx.dates:  # an overfull date: its least important extra places go elsewhere, or are left out
+        while len(p.sights(plan[d])) > p.hard_max(d):
+            extra = max((i for i in p.sights(plan[d]) if not ctx.stops[i].required), key=rank.get, default=None)
+            if extra is None:
+                break
+            plan[d] = [i for i in plan[d] if i != extra]
+            day = _place(p, plan, extra, exclude={d})
+            if day is not None:
+                notes.append(f"moved {p.stop(extra).name} from {d} to {day}: {d} had more than "
+                             f"{p.hard_max(d)} sightseeing places")
+            else:
+                still.append(UnscheduledChoice(place_id=extra, reason=f"Python: the trip's days are full (at most "
+                                               f"{p.hard_max(d)} sightseeing places a day)"))
+                notes.append(f"left out {p.stop(extra).name}: no date had room for it")
     for d in ctx.dates:
         order = p.best_order(d, plan[d])
         if order is not None and order != plan[d] and p.order_key(d, order) < p.order_key(d, plan[d]):

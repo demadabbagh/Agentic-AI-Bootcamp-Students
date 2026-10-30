@@ -113,3 +113,42 @@ def budget_decisions(report) -> list[str]:
     lines += [f"  - {_clean(w.name)}: {_clean(w.reason)}" for w in report.withheld]
     lines.append("========================")
     return lines
+
+
+# ------------------------------------------------------------------ errors the API can explain
+_ERROR_CLASSES = (
+    # (exception class names anywhere in the cause chain, HTTP status, code, message, retryable)
+    ({"APITimeoutError", "Timeout", "TimeoutError", "ReadTimeout", "ConnectTimeout"}, 504, "llm_timeout",
+     "The AI provider took too long to answer. No trip was generated; please try again.", True),
+    ({"RateLimitError"}, 429, "llm_rate_limited",
+     "The AI provider is busy (rate limit). No trip was generated; please try again in a minute.", True),
+    ({"AuthenticationError", "PermissionDeniedError"}, 503, "llm_unavailable",
+     "The AI provider refused the request (check the API key configuration). No trip was generated.", False),
+    ({"APIConnectionError"}, 503, "llm_unavailable",
+     "The AI provider could not be reached. No trip was generated; please try again.", True),
+    ({"BudgetAnalystError", "ItineraryPlannerError", "VerifierAgentError", "RevisionAgentError"}, 503,
+     "planning_failed", "A planning step could not produce a valid result. No trip was generated.", True),
+)
+
+
+def _chain(exc: BaseException):
+    seen = set()
+    while exc is not None and id(exc) not in seen:
+        seen.add(id(exc))
+        yield exc
+        exc = exc.__cause__ or exc.__context__
+
+
+def classify_error(exc: BaseException) -> tuple[int, str, str, bool]:
+    """(HTTP status, code, user-facing message, retryable) for an exception from the planning pipeline. Looks
+    through the cause chain (CrewAI wraps provider errors); a provider's own 402 stays a 402."""
+    chain = list(_chain(exc))
+    for e in chain:
+        if getattr(e, "status_code", None) == 402:
+            return 402, "llm_payment_required", ("The AI provider declined the request (payment required). "
+                                                 "No trip was generated."), False
+    names = [type(e).__name__ for e in chain]
+    for classes, status, code, message, retryable in _ERROR_CLASSES:
+        if any(n in classes for n in names):
+            return status, code, message, retryable
+    return 503, "internal_error", "The trip planning service is temporarily unavailable. No trip was generated.", True

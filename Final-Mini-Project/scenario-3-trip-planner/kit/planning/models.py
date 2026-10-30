@@ -73,6 +73,7 @@ class Activity(BaseModel):
     kind: Literal["see", "do", "buy", "eat", "drink"] | None = None  # the Wikivoyage listing kind
     duration_is_estimate: bool = True  # no tool gives visit durations: they are planning estimates
     travel_minutes_from_previous: Annotated[int, Field(ge=0, strict=True)] | None = None
+    travel_mode_from_previous: Literal["foot", "driving"] | None = None  # how those minutes travel (measured only)
 
     @field_validator("source_url")
     @classmethod
