@@ -140,3 +140,27 @@ def test_geocode_endpoint_passes_candidates_through(nominatim, monkeypatch):
     assert body["ambiguous"] is True
     assert len(body["candidates"]) == 3
     assert body["resolved_by"] == "nominatim"
+
+
+def test_user_agent_always_names_a_contact(monkeypatch):
+    """Wikimedia answers 403 to a User-Agent without a contact: every live city then failed."""
+    monkeypatch.delenv("TRAVEL_CONTACT", raising=False)
+    assert td.DEFAULT_CONTACT in td.user_agent()
+    monkeypatch.setenv("TRAVEL_CONTACT", "https://example.org/my-fork")
+    assert "https://example.org/my-fork" in td.user_agent()
+
+
+def test_upstream_http_errors_report_the_status(monkeypatch):
+    import httpx
+
+    def blocked(url, params=None):
+        request = httpx.Request("GET", url)
+        raise httpx.HTTPStatusError("403", request=request, response=httpx.Response(403, request=request))
+
+    monkeypatch.setenv("TRAVEL_MODE", "live")
+    monkeypatch.setattr(td, "http_get", blocked)
+    monkeypatch.setattr(td, "_MEM", {})
+    monkeypatch.setattr(td, "cache_read", lambda kind, key: None)
+    with pytest.raises(td.DataError) as err:
+        td.geocode("Tokyo")
+    assert "HTTPStatusError 403" in err.value.message

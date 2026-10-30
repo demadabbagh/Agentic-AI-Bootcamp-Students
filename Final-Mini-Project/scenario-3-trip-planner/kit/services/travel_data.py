@@ -118,6 +118,12 @@ def not_cached(what: str, hint: str = "") -> DataError:
                      mode="replay")
 
 
+def _failure(exc: Exception) -> str:
+    """The exception type, plus the HTTP status when there is one (403 = blocked, 429 = rate limited)."""
+    status = getattr(getattr(exc, "response", None), "status_code", None)
+    return f"{type(exc).__name__} {status}" if status else type(exc).__name__
+
+
 def cached(kind: str, key: str, fetch, what: str) -> tuple[dict, str]:
     """Return (record, mode). replay: cache only. record: cache, else upstream + write.
     live: upstream (kept in memory), the cache only as a fallback when the upstream fails."""
@@ -137,7 +143,7 @@ def cached(kind: str, key: str, fetch, what: str) -> tuple[dict, str]:
     except Exception as exc:  # noqa: BLE001 - upstream failure: fall back to the cache, say so
         rec = cache_read(kind, key)
         if rec is None:
-            raise DataError(503, "upstream_unavailable", f"{what}: the live source failed ({type(exc).__name__}) "
+            raise DataError(503, "upstream_unavailable", f"{what}: the live source failed ({_failure(exc)}) "
                             "and there is no cached copy.") from exc
         rec = dict(rec, stale=True, note=f"Live source failed; cached copy from {rec.get('retrieved_at')}.")
         return rec, "replay"
@@ -152,8 +158,13 @@ _client: httpx.Client | None = None
 _last_call: dict[str, float] = {}
 
 
+# Wikimedia and OpenStreetMap block requests whose User-Agent names no way to reach the operator (Wikivoyage
+# answers 403 "Please respect our robot policy"), so an empty TRAVEL_CONTACT used to break every live city.
+DEFAULT_CONTACT = "https://github.com/demadabbagh/Agentic-AI-Bootcamp-Students"
+
+
 def user_agent() -> str:
-    contact = os.getenv("TRAVEL_CONTACT", "").strip() or "set TRAVEL_CONTACT to your email or repo URL"
+    contact = os.getenv("TRAVEL_CONTACT", "").strip() or DEFAULT_CONTACT
     return f"RihlaTripPlannerKit/1.0 (Agentic AI Bootcamp teaching kit; low-volume cached use; contact: {contact})"
 
 
