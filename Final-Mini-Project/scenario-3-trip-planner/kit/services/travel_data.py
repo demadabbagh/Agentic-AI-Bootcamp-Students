@@ -118,6 +118,12 @@ def not_cached(what: str, hint: str = "") -> DataError:
                      mode="replay")
 
 
+def _failure(exc: Exception) -> str:
+    """The exception type, plus the HTTP status when there is one (403 = blocked, 429 = rate limited)."""
+    status = getattr(getattr(exc, "response", None), "status_code", None)
+    return f"{type(exc).__name__} {status}" if status else type(exc).__name__
+
+
 def cached(kind: str, key: str, fetch, what: str) -> tuple[dict, str]:
     """Return (record, mode). replay: cache only. record: cache, else upstream + write.
     live: upstream (kept in memory), the cache only as a fallback when the upstream fails."""
@@ -137,7 +143,7 @@ def cached(kind: str, key: str, fetch, what: str) -> tuple[dict, str]:
     except Exception as exc:  # noqa: BLE001 - upstream failure: fall back to the cache, say so
         rec = cache_read(kind, key)
         if rec is None:
-            raise DataError(503, "upstream_unavailable", f"{what}: the live source failed ({type(exc).__name__}) "
+            raise DataError(503, "upstream_unavailable", f"{what}: the live source failed ({_failure(exc)}) "
                             "and there is no cached copy.") from exc
         rec = dict(rec, stale=True, note=f"Live source failed; cached copy from {rec.get('retrieved_at')}.")
         return rec, "replay"
@@ -152,8 +158,13 @@ _client: httpx.Client | None = None
 _last_call: dict[str, float] = {}
 
 
+# Wikimedia and OpenStreetMap block requests whose User-Agent names no way to reach the operator (Wikivoyage
+# answers 403 "Please respect our robot policy"), so an empty TRAVEL_CONTACT used to break every live city.
+DEFAULT_CONTACT = "https://github.com/demadabbagh/Agentic-AI-Bootcamp-Students"
+
+
 def user_agent() -> str:
-    contact = os.getenv("TRAVEL_CONTACT", "").strip() or "set TRAVEL_CONTACT to your email or repo URL"
+    contact = os.getenv("TRAVEL_CONTACT", "").strip() or DEFAULT_CONTACT
     return f"RihlaTripPlannerKit/1.0 (Agentic AI Bootcamp teaching kit; low-volume cached use; contact: {contact})"
 
 
@@ -888,18 +899,63 @@ def geocode(query: str) -> tuple[dict, str]:
         raise DataError(422, "missing_query", "Give a place to geocode, e.g. q=Galata Tower, Istanbul.")
 
     def fetch() -> dict:
-        r, url = http_get(NOMINATIM, {"q": q, "format": "jsonv2", "limit": 1, "accept-language": "en"})
+        r, url = http_get(NOMINATIM, {"q": q, "format": "jsonv2", "limit": GEOCODE_CANDIDATES,
+                                      "addressdetails": 1, "accept-language": "en"})
         r.raise_for_status()
-        hits = r.json()
+        hits = [h for h in r.json() if _valid_point(h)]
         if not hits:
             raise DataError(404, "place_not_found", f"Nominatim found nothing for '{q}'.")
-        h = hits[0]
-        return {"kind": "geocode", "query": q, "name": h.get("name") or q, "display_name": h.get("display_name"),
-                "lat": float(h["lat"]), "lon": float(h["lon"]), "osm_type": h.get("osm_type"),
-                "osm_id": h.get("osm_id"), "category": h.get("category"), "type": h.get("type"),
-                "source": "Nominatim (OpenStreetMap)", "source_url": url.replace(" ", "+"),
-                "licence": OSM_LICENCE, "retrieved_at": now_iso()}
+        h = hits[0]  # Nominatim's own ranking: the same pick as before, the alternatives are only reported
+        candidates = [_candidate(c) for c in hits]
+        ambiguous = is_ambiguous(q, candidates)
+        rec = {"kind": "geocode", "query": q, "name": h.get("name") or q, "display_name": h.get("display_name"),
+               "lat": float(h["lat"]), "lon": float(h["lon"]), "osm_type": h.get("osm_type"),
+               "osm_id": h.get("osm_id"), "category": h.get("category"), "type": h.get("type"),
+               "country": candidates[0]["country"], "country_code": candidates[0]["country_code"],
+               "candidates": candidates, "ambiguous": ambiguous,
+               "source": "Nominatim (OpenStreetMap)", "source_url": url.replace(" ", "+"),
+               "licence": OSM_LICENCE, "retrieved_at": now_iso()}
+        if ambiguous:
+            others = "; ".join(c["display_name"] for c in candidates[1:4] if c["display_name"])
+            rec["note"] = (f"'{q}' matches places in more than one country or region. Using "
+                           f"{h.get('display_name')}. Add the country (e.g. '{q}, <country>') if you meant: {others}.")
+        return rec
     return cached("geocode", slug(q), fetch, f"Geocoding '{q}'")
+
+
+GEOCODE_CANDIDATES = 5
+# Nominatim results that are a town or city rather than a building or street: the only ones that make a
+# destination name ambiguous ("Paris" the city in France vs the city in Texas, not "Paris Hotel").
+SETTLEMENT_TYPES = {"city", "town", "village", "municipality", "administrative", "hamlet", "suburb", "county",
+                    "state", "province", "region", "island", "borough", "quarter"}
+
+
+def _valid_point(hit: dict) -> bool:
+    try:
+        lat, lon = float(hit["lat"]), float(hit["lon"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    return -90 <= lat <= 90 and -180 <= lon <= 180 and not (lat == 0 and lon == 0)
+
+
+def _candidate(hit: dict) -> dict:
+    addr = hit.get("address") or {}
+    return {"name": hit.get("name") or "", "display_name": hit.get("display_name") or "",
+            "lat": float(hit["lat"]), "lon": float(hit["lon"]),
+            "country": addr.get("country"), "country_code": (addr.get("country_code") or "").upper() or None,
+            "region": addr.get("state") or addr.get("province") or addr.get("region"),
+            "category": hit.get("category"), "type": hit.get("addresstype") or hit.get("type"),
+            "importance": hit.get("importance")}
+
+
+def is_ambiguous(query: str, candidates: list[dict]) -> bool:
+    """True when an unqualified name ('Paris', not 'Paris, France') matches towns in different countries or
+    regions. A qualified query is the traveller's own disambiguation, so it is trusted."""
+    if "," in query:
+        return False
+    places = {(c.get("country_code"), c.get("region")) for c in candidates
+              if c.get("category") in ("place", "boundary") and c.get("type") in SETTLEMENT_TYPES}
+    return len(places) > 1
 
 
 def resolve_place(place: str, city: str, listings: list[dict] | None = None) -> dict:
