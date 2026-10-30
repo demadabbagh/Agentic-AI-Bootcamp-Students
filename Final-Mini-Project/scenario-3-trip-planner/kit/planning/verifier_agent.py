@@ -467,6 +467,8 @@ def make_guardrail(ctx: VerifierContext):
             for p in problems:
                 kinds[p.kind] = kinds.get(p.kind, 0) + 1
             ctx.rejections.append({"parse_error": False, "problems": kinds})
+            # Python's own wording of each problem (a finding id and the rule), in the server log for diagnosis
+            print("Verifier guardrail:", [p.text.split(";")[0][:160] for p in problems][:5])
             return False, feedback(problems)
         ctx.accepted = accept(draft)
         return True, ctx.accepted

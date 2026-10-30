@@ -7,12 +7,13 @@ from uuid import uuid4
 from threading import Lock
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 
 from app.schemas import ChatRequest, ChatResponse, ApproveRequest
 from app.memory import get_session
 from app.orchestrator import orchestrate_trip
 from app.trip_store import TripStoreError, save_trip_to_store
-from app.diagnostics import safe_traceback
+from app.diagnostics import classify_error, safe_traceback
 
 
 app = FastAPI(title="Rihla Trip Planner")
@@ -53,13 +54,15 @@ def chat(request: ChatRequest):
             error_id,
             safe_traceback(exc),
         )
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "The trip planning service is temporarily unavailable. "
-                f"(error id {error_id})"
-            ),
-        ) from exc
+        status_code, code, message, retryable = classify_error(exc)
+        # "detail" stays a plain string (what the frontend shows); "error" adds the machine-readable part.
+        return JSONResponse(
+            status_code=status_code,
+            content={
+                "detail": f"{message} (error id {error_id})",
+                "error": {"code": code, "message": message, "error_id": error_id, "retryable": retryable},
+            },
+        )
 
     status = result["status"]
     itinerary = None
@@ -160,6 +163,8 @@ def chat(request: ChatRequest):
         performance=deepcopy(result.get("performance")) if isinstance(result.get("performance"), dict) else None,
         summary=deepcopy(result.get("summary")) if itinerary is not None and isinstance(result.get("summary"), dict)
         else None,
+        verification=deepcopy(result.get("verification")) if itinerary is not None else None,
+        budget=deepcopy(result.get("budget")) if itinerary is not None else None,
     )
 
 

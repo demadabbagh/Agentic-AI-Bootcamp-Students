@@ -37,7 +37,7 @@ TravelStatus = Literal["measured", "unavailable", "not_looked_up"]
 StopStatus = Literal["scheduled", "closed", "does_not_fit"]
 IssueCode = Literal["closed_on_date", "does_not_fit", "duplicate_place", "date_outside_trip", "required_not_scheduled",
                     "hours_unknown", "hours_unconfirmed", "travel_unknown", "walk_over_limit", "walk_unverified",
-                    "outside_meal_time"]
+                    "outside_meal_time", "ride_planned"]
 ERRORS = {"closed_on_date", "does_not_fit", "duplicate_place", "date_outside_trip", "required_not_scheduled"}
 
 # Planning estimates (minutes) by Wikivoyage listing kind; no tool gives visit durations.
@@ -215,6 +215,10 @@ class TravelLeg(BaseModel):
     error_code: str | None = None
     note: str | None = None
     citation: dict | None = None  # the travel_time result's citation (OSRM route)
+    # "foot", or "driving" when the walk was over the walking threshold and the lookup measured a car/taxi ride
+    # instead (app.mcp_lookup_adapter): then `minutes` is the ride and `walk_minutes` the measured walk.
+    mode: Literal["foot", "driving"] = "foot"
+    walk_minutes: int | None = None
 
 
 class TravelTimes:
@@ -271,8 +275,11 @@ class TravelTimes:
             return TravelLeg(status="unavailable", error_code=str(err.get("code") or "bad_result"),
                              note=str(err.get("message") or "the travel_time result has no duration")[:200], **base)
         self._log(a, b, True, started)
+        mode = "driving" if result.get("profile") == "driving" else "foot"
+        walk = result.get("walk_duration_min") if mode == "driving" else None
         return TravelLeg(status="measured", minutes=minutes, distance_m=result.get("distance_m"),
-                         citation=result.get("citation"), note=result.get("note"), **base)
+                         citation=result.get("citation"), note=result.get("note"), mode=mode,
+                         walk_minutes=walk if isinstance(walk, int) and not isinstance(walk, bool) else None, **base)
 
     def _log(self, a: Stop, b: Stop, ok: bool, started: float) -> None:
         self.calls.append({"tool": "travel_time", "ok": ok, "ms": round((time.perf_counter() - started) * 1000),
@@ -431,6 +438,11 @@ def _stop_warnings(stop: Stop, hours: DayHours, leg: TravelLeg | None, start: in
         if rules.max_walk_minutes:
             out.append(Issue.of("walk_unverified", f"The walk to {stop.name} cannot be checked against the "
                                 f"{rules.max_walk_minutes}-minute limit.", stop.place_id, day))
+    elif leg is not None and leg.mode == "driving":
+        walk = f"walking would take {leg.walk_minutes} minutes" if leg.walk_minutes is not None else "a long walk"
+        out.append(Issue.of("ride_planned", f"{stop.name}: {walk}, so the plan uses a taxi or car ({leg.minutes} "
+                            "minutes, OSRM driving time without traffic; the fare is not included).",
+                            stop.place_id, day))
     elif leg is not None and rules.max_walk_minutes and leg.minutes > rules.max_walk_minutes:
         out.append(Issue.of("walk_over_limit", f"The walk to {stop.name} takes {leg.minutes} minutes, over the "
                             f"{rules.max_walk_minutes}-minute limit.", stop.place_id, day))
@@ -559,6 +571,11 @@ def activity_fields(stop: ScheduledStop) -> dict:
     if stop.buffer_used:
         notes.append(f"Travel time from the previous stop unknown: {stop.gap_minutes}-minute planning buffer")
     measured = stop.travel is not None and stop.travel.status == "measured"
+    if measured and stop.travel.mode == "driving":
+        walk = f" (walking: {stop.travel.walk_minutes} min)" if stop.travel.walk_minutes is not None else ""
+        notes.append(f"By taxi or car from the previous stop: {stop.travel.minutes} min{walk}; OSRM driving time "
+                     "without traffic, fare not included")
     return {"start_time": stop.start, "end_time": stop.end, "duration_is_estimate": stop.duration_is_estimate,
             "travel_minutes_from_previous": stop.travel.minutes if measured else None,
+            "travel_mode_from_previous": stop.travel.mode if measured else None,
             "notes": "; ".join(notes) or None}
