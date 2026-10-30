@@ -116,7 +116,11 @@ def test_invalid_approval_is_rejected():
 
         save_mock.assert_not_called()
 
-    assert response.status_code == 400
+    # CONTRACT §3: an unknown action_id gets a clear reply and writes nothing.
+    assert response.status_code == 200
+    assert response.json()["status"] == "no_pending_action"
+    assert response.json()["result"] is None
+    assert "nothing" in response.json()["reply"].lower()
     assert sessions["test-session"]["pending_action"] is not None
 
 
@@ -148,18 +152,20 @@ def test_valid_approval():
 
         assert response.status_code == 200
         assert response.json()["status"] == "approved"
-        assert response.json()["trip"]["trip_id"] == "TRIP-100"
+        assert response.json()["result"] == {"trip_id": "TRIP-100"}
+        assert "TRIP-100" in response.json()["reply"]
 
         save_mock.assert_called_once_with(
             itinerary=itinerary,
             traveller_id="TRV-101",
             action_id="correct-id",
+            title=None,
         )
 
         assert sessions["test-session"]["pending_action"] is None
         assert sessions["test-session"]["saved_trip"] == saved_trip
 
-        # The same approval cannot be used twice.
+        # The same approval again (a double click) answers with the same trip and writes nothing again.
         second_response = client.post(
             "/api/approve",
             json={
@@ -169,7 +175,8 @@ def test_valid_approval():
             },
         )
 
-        assert second_response.status_code == 404
+        assert second_response.status_code == 200
+        assert second_response.json()["result"] == {"trip_id": "TRIP-100"}
         save_mock.assert_called_once()
 
 
@@ -216,7 +223,11 @@ def test_save_failure_preserves_pending_action():
             },
         )
 
-        assert response.status_code == 503
+        # CONTRACT §3: a failed write is an honest reply with no result; the session continues.
+        assert response.status_code == 200
+        assert response.json()["status"] == "save_failed"
+        assert response.json()["result"] is None
+        assert "TRIP-" not in response.json()["reply"]
         assert save_mock.call_count == 1
 
     assert sessions["test-session"]["pending_action"] is not None

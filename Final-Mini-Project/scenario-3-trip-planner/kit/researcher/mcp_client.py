@@ -3,16 +3,23 @@
 Starts services.travel_mcp over stdio and calls ONLY read tools.
 Write tools (save_trip, save_preferences) are blocked here, in code,
 so no prompt or LLM decision can ever save a trip from the research step.
+(The application's own approval and memory code writes through app/mcp_app_client.py, never an agent.)
+
+Every MCP call, read or write, goes through _dispatch(), which records it for the current request when a
+recording() is open: the API's tool_calls are these records, never reconstructed or estimated.
 """
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import json
 import os
 import sys
 import threading
+import time
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
@@ -145,16 +152,61 @@ class _SharedSession:
 _shared = _SharedSession()
 
 
-def call_read_tool(name: str, args: dict | None = None) -> dict:
-    """Call one read-only MCP tool and return its dict result.
+def reset_shared_session() -> None:
+    """Close the shared MCP server process; the next call starts a new one (with the environment of that moment)."""
+    with _shared._lock:
+        _shared._reset()
 
-    Always returns {"ok": true, ...} or {"ok": false, "error": {...}}.
-    Raises ToolNotAllowed for any tool outside READ_ONLY_TOOLS.
-    Calls share one MCP server process (MCP_SHARED_SESSION=0 starts one per call, the old behaviour).
-    """
-    if name not in READ_ONLY_TOOLS:
-        raise ToolNotAllowed(f"'{name}' is not a read-only tool; the Researcher cannot call it.")
 
+# ------------------------------------------------------------------ per-request record of MCP calls
+# A ContextVar, so concurrent requests (each in its own thread or task) never see each other's calls.
+_CALLS: contextvars.ContextVar[list | None] = contextvars.ContextVar("rihla_mcp_calls", default=None)
+_STAGE: contextvars.ContextVar[str | None] = contextvars.ContextVar("rihla_mcp_stage", default=None)
+
+
+@contextmanager
+def recording() -> Iterator[list[dict]]:
+    """Record every MCP call made in this context: [{"tool", "ok", "ms", "agent", "via": "mcp", "error"?}]."""
+    calls: list[dict] = []
+    token = _CALLS.set(calls)
+    try:
+        yield calls
+    finally:
+        _CALLS.reset(token)
+
+
+@contextmanager
+def stage(name: str) -> Iterator[None]:
+    """Label the MCP calls made in this context with the agent stage that made them (researcher, verifier...)."""
+    token = _STAGE.set(name)
+    try:
+        yield
+    finally:
+        _STAGE.reset(token)
+
+
+def current_stage() -> str | None:
+    return _STAGE.get()
+
+
+def record_call(entry: dict) -> None:
+    """Add one already-made tool call to the current recording (no-op outside a recording)."""
+    calls = _CALLS.get()
+    if calls is not None:
+        calls.append(entry)
+
+
+def _error_code(result: Any) -> str | None:
+    if not isinstance(result, dict):
+        return "bad_result"
+    if result.get("ok") is False or isinstance(result.get("error"), dict):
+        err = result.get("error")
+        return str(err.get("code") or "error") if isinstance(err, dict) else "error"
+    return None
+
+
+def _transport(name: str, args: dict) -> dict:
+    """Send one tool call to the MCP server over stdio. No allowlist here: callers check it."""
     if os.environ.get("MCP_SHARED_SESSION", "1").strip() != "0":
         return _shared.call(name, dict(args or {}))
 
@@ -179,3 +231,34 @@ def call_read_tool(name: str, args: dict | None = None) -> dict:
     if "error" in box:
         raise box["error"]
     return box["value"]
+
+
+def _dispatch(name: str, args: dict | None) -> dict:
+    """Make one MCP call and record it: its name, outcome and time. Arguments and results are not recorded
+    (they may hold a traveller's data). A call that could not reach the server is recorded as failed, then
+    re-raised. Used by call_read_tool and by the application's own write path (app/mcp_app_client.py) only."""
+    started = time.perf_counter()
+    try:
+        result = _transport(name, dict(args or {}))
+    except Exception as exc:
+        record_call({"tool": name, "ok": False, "ms": round((time.perf_counter() - started) * 1000),
+                     "agent": _STAGE.get(), "via": "mcp", "error": f"mcp_unavailable ({type(exc).__name__})"})
+        raise
+    entry = {"tool": name, "ok": _error_code(result) is None, "ms": round((time.perf_counter() - started) * 1000),
+             "agent": _STAGE.get(), "via": "mcp"}
+    if not entry["ok"]:
+        entry["error"] = _error_code(result)
+    record_call(entry)
+    return result
+
+
+def call_read_tool(name: str, args: dict | None = None) -> dict:
+    """Call one read-only MCP tool and return its dict result.
+
+    Always returns {"ok": true, ...} or {"ok": false, "error": {...}}.
+    Raises ToolNotAllowed for any tool outside READ_ONLY_TOOLS (before anything reaches the server).
+    Calls share one MCP server process (MCP_SHARED_SESSION=0 starts one per call, the old behaviour).
+    """
+    if name not in READ_ONLY_TOOLS:
+        raise ToolNotAllowed(f"'{name}' is not a read-only tool; the Researcher cannot call it.")
+    return _dispatch(name, args)

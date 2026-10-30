@@ -7,6 +7,16 @@ This file lists the problems that need changes in **`app/**`** (Backend / Coordi
 
 The frontend and research changes already made, and what they expect from you, are in [section 4](#4-what-the-frontend-and-research-side-already-did).
 
+> **Update (MCP compliance round, same day):** B1, B2, B6 and B7 are **done** and B8 is partly done. See
+> [`RIHLA_MCP_IMPLEMENTATION.md`](RIHLA_MCP_IMPLEMENTATION.md) for the design and evidence.
+> - `/api/chat` returns `reply`, `citations`, `tool_calls`, `usage`, `result` and `pending_action.summary/payload`.
+> - `/api/approve` returns a ChatResponse and saves through the MCP `save_trip` tool (no direct REST).
+> - The traveller comes from `user.traveller_id`, and preferences are read and saved through MCP.
+> - A repeated approval returns the same trip without a second write.
+> - `trip_store.py` no longer has a REST URL, so its wrong default is gone; `.env.example` is still to update.
+>
+> **Still open:** P1 (replay-mode approval policy: team decision), B3, B4 + P2 (revision), B5, B9, P3.
+
 ---
 
 ## 1. Priorities at a glance

@@ -33,13 +33,22 @@ class ChatRequest(BaseModel):
     session_id: str = Field(min_length=1)
     message: str = Field(min_length=1)
     trip: TripForm | None = None  # the structured form, when the request comes from the trip form
+    user: dict[str, Any] | None = None  # CONTRACT §1/§5: {"traveller_id": "TRV-101", "name": "..."}, optional
 
 
 class ChatResponse(BaseModel):
+    # The API contract (common/CONTRACT.md §2)
     session_id: str
+    reply: str = ""  # always present: plain text the traveller reads
+    state: str | None = None  # where the workflow is now (the same value as status)
+    pending_action: dict[str, Any] | None = None  # {action_id, type, summary, payload} only when approvable
+    result: dict[str, Any] | None = None  # {"trip_id": "TRIP-…"} only after the Trip Store confirmed a save
+    citations: list[dict[str, Any]] = Field(default_factory=list)  # [{id, title, url}]
+    tool_calls: list[dict[str, Any]] = Field(default_factory=list)  # [{tool, ok, ms, agent, via}]
+    usage: dict[str, Any] | None = None  # {prompt_tokens, completion_tokens, cost_usd, ...}
+    # Rihla's own fields (the React dashboard reads them)
     status: str
     itinerary: dict[str, Any] | None = None
-    pending_action: dict[str, Any] | None = None
     message: str | None = None
     coverage: dict[str, Any] | None = None  # app/coverage.py CoverageReport.as_dict()
     plan_quality: dict[str, Any] | None = None  # app/coverage.py DensityReport.as_dict(): advice, never a gate

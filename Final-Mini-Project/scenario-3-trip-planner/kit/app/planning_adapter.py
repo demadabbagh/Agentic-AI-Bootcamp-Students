@@ -5,9 +5,11 @@ from typing import Any
 from crewai import LLM
 from dotenv import load_dotenv
 
+from app.contract import record_agent_tools
 from planning.research import ResearchBundle
 from planning.budget_analyst import run_budget_analyst
 from planning.itinerary_planner import plan_itinerary
+from researcher.mcp_client import stage
 
 
 load_dotenv()
@@ -73,20 +75,24 @@ def run_planning_pipeline(
 
     # STEP 1: Budget Analyst
     started = time.perf_counter()
-    budget_report = run_budget_analyst(
-        bundle=research_bundle,
-        llm=llm,
-    )
+    with stage("budget_analyst"):
+        budget_report = run_budget_analyst(
+            bundle=research_bundle,
+            llm=llm,
+        )
+    record_agent_tools("budget_analyst", getattr(budget_report, "agent_tool_calls", None))
     budget_ms = round((time.perf_counter() - started) * 1000)
 
-    # STEP 2: Itinerary Planner
+    # STEP 2: Itinerary Planner (its travel_time lookups go over MCP and are recorded as they happen)
     started = time.perf_counter()
-    planner_report = plan_itinerary(
-        report=budget_report,
-        bundle=research_bundle,
-        llm=llm,
-        travel_lookup=travel_lookup,
-    )
+    with stage("itinerary_planner"):
+        planner_report = plan_itinerary(
+            report=budget_report,
+            bundle=research_bundle,
+            llm=llm,
+            travel_lookup=travel_lookup,
+        )
+    record_agent_tools("itinerary_planner", getattr(planner_report, "agent_tool_calls", None))
     planner_ms = round((time.perf_counter() - started) * 1000)
 
     # STEP 3: Prepare output

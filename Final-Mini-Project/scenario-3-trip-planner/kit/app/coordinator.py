@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from crewai import Agent, Crew, LLM, Process, Task
 
+from app.contract import record_llm_usage
+
 
 load_dotenv()
 
@@ -241,6 +243,7 @@ Instructions:
     )
 
     result = crew.kickoff()
+    record_llm_usage(getattr(result, "token_usage", None))  # this request's usage (the API's usage field)
 
     if result.pydantic is None:
         raise ValueError(

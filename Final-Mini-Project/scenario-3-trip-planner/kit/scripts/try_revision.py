@@ -75,7 +75,8 @@ def only_hosts(allowed: set[str], attempts: list, *, real_create=None):
     record every other. HTTP clients connect through socket.create_connection with the host name, so the check is
     on the name; the IP-level connect inside an allowed call is let through."""
     real_connect, real_listen = socket.socket.connect, socket.socket.listen
-    real_create = real_create or socket.create_connection
+    original_create = socket.create_connection  # restored afterwards (real_create may be a test's stand-in)
+    real_create = real_create or original_create
     own_ports: set[int] = set()
     inside = threading.local()
 
@@ -104,7 +105,7 @@ def only_hosts(allowed: set[str], attempts: list, *, real_create=None):
     try:
         yield
     finally:
-        socket.socket.connect, socket.socket.listen, socket.create_connection = real_connect, real_listen, real_create
+        socket.socket.connect, socket.socket.listen, socket.create_connection = real_connect, real_listen, original_create
 
 
 # ------------------------------------------------------------------ output
