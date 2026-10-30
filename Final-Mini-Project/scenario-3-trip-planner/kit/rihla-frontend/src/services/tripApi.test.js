@@ -93,3 +93,20 @@ describe('the structured trip form', () => {
     await assert.rejects(createTrip(TRIP, 's'), /Please check the trip details: The return date is before the departure date\./)
   })
 })
+
+describe('createTrip timeout', () => {
+  it('stops waiting for a hung backend and says no trip was shown', async () => {
+    let sawSignal = false
+    globalThis.fetch = (url, init) => new Promise((resolve, reject) => {
+      sawSignal = Boolean(init.signal)
+      init.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))
+    })
+    await assert.rejects(createTrip(TRIP, 's', 20), /did not answer within[\s\S]*no trip is shown/)
+    assert.equal(sawSignal, true)
+  })
+
+  it('a response before the limit is returned normally', async () => {
+    respondWith(200, { status: 'pending_approval' })
+    assert.deepEqual(await createTrip(TRIP, 's', 1000), { status: 'pending_approval' })
+  })
+})

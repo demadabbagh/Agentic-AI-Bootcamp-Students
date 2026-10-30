@@ -47,8 +47,14 @@ const STATUS_MESSAGES = {
   503: 'The trip planning service is temporarily unavailable. No trip was generated, please try again later.',
 }
 
-export async function createTrip(trip, sessionId) {
+// Measured full runs take 75-85 s (sequential LLM stages); stop waiting well
+// after that so a hung backend or provider never leaves the page spinning forever.
+export const TRIP_REQUEST_TIMEOUT_MS = 5 * 60 * 1000
+
+export async function createTrip(trip, sessionId, timeoutMs = TRIP_REQUEST_TIMEOUT_MS) {
   let response
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     response = await fetch('/api/chat', {
@@ -61,9 +67,18 @@ export async function createTrip(trip, sessionId) {
         message: buildTripMessage(trip),
         trip: buildTripForm(trip),
       }),
+      signal: controller.signal,
     })
   } catch {
+    if (controller.signal.aborted) {
+      throw new Error(
+        `The planner did not answer within ${Math.round(timeoutMs / 60000)} minutes, so no trip is shown. `
+        + 'The server may still be working on it; please try again in a moment.'
+      )
+    }
     throw new Error('Could not reach the Rihla backend. Check that it is running, then try again.')
+  } finally {
+    clearTimeout(timer)
   }
 
   if (!response.ok) {
