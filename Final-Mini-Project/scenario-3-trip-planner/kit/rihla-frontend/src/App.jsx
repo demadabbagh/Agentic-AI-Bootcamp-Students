@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { createTrip } from './services/tripApi'
 import { validateTripResult } from './services/tripResult'
+import { validateTripForm } from './services/tripForm'
 
 const LIVE_AI_ENABLED = import.meta.env.VITE_ENABLE_LIVE_AI === 'true'
 
@@ -11,6 +12,7 @@ import {
   Compass,
   MapPin,
   Menu,
+  X,
   Plane,
   Sparkles,
   Users,
@@ -30,6 +32,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [elapsed, setElapsed] = useState(0)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   // A real clock while the backend works (it reports no stages yet): never an invented progress bar.
   useEffect(() => {
@@ -52,6 +55,12 @@ export default function App() {
       budget,
       interests,
       customPreferences,
+    }
+
+    const problems = validateTripForm(trip)
+    if (problems.length) {
+      setError(problems.join(' '))
+      return
     }
 
     // Never fall through to the Dashboard without a generated itinerary.
@@ -103,15 +112,31 @@ export default function App() {
           <div className="hidden items-center gap-9 text-sm font-medium text-white/85 md:flex">
             <a href="#explore" className="transition hover:text-white">Explore</a>
             <a href="#planner" className="transition hover:text-white">AI Trip Planner</a>
-            <a href="#about" className="transition hover:text-white">About Rihla</a>
+            <a href="/my-trips" className="transition hover:text-white">My Trips</a>
           </div>
 
           <button className="hidden items-center gap-2 rounded-full border border-white/40 bg-white/15 px-5 py-3 text-sm font-medium backdrop-blur-xl transition hover:bg-white/25 md:flex">
             Start Exploring <ArrowRight size={16} />
           </button>
 
-          <Menu className="md:hidden" />
+          <button
+            type="button"
+            className="md:hidden"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {menuOpen ? <X /> : <Menu />}
+          </button>
         </nav>
+
+        {menuOpen && (
+          <div className="relative z-10 mx-7 flex flex-col gap-1 rounded-2xl border border-white/30 bg-[#0d2a37]/90 p-3 text-sm backdrop-blur-xl md:hidden">
+            <a href="#planner" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-2 hover:bg-white/10">AI Trip Planner</a>
+            <a href="/my-trips" className="rounded-xl px-3 py-2 hover:bg-white/10">My Trips</a>
+            <a href="/login" className="rounded-xl px-3 py-2 hover:bg-white/10">Log In</a>
+          </div>
+        )}
 
         <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center gap-12 px-7 py-14 md:px-12 lg:flex-row lg:items-center lg:gap-20">
           <div className="max-w-2xl flex-1">
@@ -171,9 +196,10 @@ export default function App() {
                     <MapPin size={18} className="shrink-0 text-[#b7e6e4]" />
                     <input
                       required
+                      maxLength={100}
                       value={destination}
                       onChange={(e) => setDestination(e.target.value)}
-                      placeholder="Where do you dream of going?"
+                      placeholder="City, Country (e.g. Paris, France)"
                       className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/55"
                     />
                   </div>

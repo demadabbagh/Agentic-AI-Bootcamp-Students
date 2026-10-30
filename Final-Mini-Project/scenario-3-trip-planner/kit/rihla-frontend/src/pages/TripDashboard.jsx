@@ -1,12 +1,13 @@
 import { buildTripView, FALLBACK_IMAGE, formatDate, formatMoney } from '../services/itineraryAdapter'
 import { getVerificationState, isValidTripResult, summarizeBudget, summarizeDensity } from '../services/tripResult'
+import { isTripSaved, saveTrip } from '../services/savedTrips'
 import { SAMPLE_HERO_IMAGE, SAMPLE_TRIP } from '../data/sampleTrip'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import {
   ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock3, ExternalLink, FlaskConical,
   MapPin, Send, ShieldAlert, ShieldCheck, Sparkles, TriangleAlert, Wallet,
-  Users, Plane, ChevronRight, Download, Bookmark,
+  Users, Plane, ChevronRight, Download, Bookmark, BookmarkCheck, Footprints, Map as MapIcon,
 } from 'lucide-react'
 
 const SCOPE_NOTE =
@@ -110,6 +111,19 @@ export default function TripDashboard() {
   const totalExperiences = view.days.reduce((total, day) => total + day.activities.length, 0)
 
   const [activeDay, setActiveDay] = useState(0)
+  const tripId = aiResult?.session_id || trip.sessionId || null
+  const [saved, setSaved] = useState(() => isReal && isTripSaved(tripId))
+  const [saveError, setSaveError] = useState('')
+
+  const handleSave = () => {
+    setSaveError('')
+    try {
+      saveTrip(aiResult, trip)
+      setSaved(true)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'The trip could not be saved.')
+    }
+  }
   const [message, setMessage] = useState('')
   const [messages, setMessages] = useState(() => [
     {
@@ -305,7 +319,19 @@ export default function TripDashboard() {
           </section>
         )}
 
-        <div className="mb-6 flex flex-wrap gap-3">
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          {isReal && (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saved}
+              title="Saved in this browser only, not to an account"
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#245c6a] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#347989] disabled:cursor-default disabled:bg-emerald-600"
+            >
+              {saved ? <BookmarkCheck size={17} /> : <Bookmark size={17} />}
+              {saved ? 'Saved in this browser' : 'Save trip to this browser'}
+            </button>
+          )}
           <a
             href="/my-trips"
             className="inline-flex items-center gap-2 rounded-2xl border border-[#d5e6e9] bg-white px-5 py-3 text-sm font-semibold text-[#245c6a] transition hover:bg-[#e7f3f4]"
@@ -320,6 +346,14 @@ export default function TripDashboard() {
           >
             <Download size={17} /> Download PDF · Coming soon
           </button>
+          {saveError && (
+            <p role="alert" className="w-full text-sm text-red-700">{saveError}</p>
+          )}
+          {isReal && !saveError && (
+            <p className="w-full text-xs text-[#8297a0]">
+              Saved trips stay in this browser on this device only. They are not synced to an account.
+            </p>
+          )}
         </div>
 
         <div className="relative mb-8 overflow-hidden rounded-[30px] bg-[#183b4b]">
@@ -391,6 +425,11 @@ export default function TripDashboard() {
                     ? `${day.activities.length} planned ${day.activities.length === 1 ? 'activity' : 'activities'}.`
                     : 'Nothing is planned for this day.'}
                 </p>
+                {isReal && day.activities.length > 0 && !day.activities.some((a) => a.travel) && (
+                  <p className="mt-1 text-xs text-[#8297a0]">
+                    Transportation information unavailable: travel times between stops were not provided.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -414,10 +453,10 @@ export default function TripDashboard() {
                         <p className="mt-2 text-xs leading-5 text-[#7a909b]">{activity.notes}</p>
                       )}
                       <div className="mt-4 flex flex-wrap items-center gap-4 text-xs font-medium text-[#68818b]">
-                        <span>{activity.duration}</span>
+                        <span>{activity.duration}{activity.durationIsEstimate && activity.duration !== 'Flexible duration' ? ' (estimate)' : ''}</span>
                         <span
                           className={`rounded-full px-3 py-1 ${
-                            activity.price === 'Price unknown'
+                            activity.priceUnknown || activity.price === 'Price unknown'
                               ? 'bg-amber-50 text-amber-700'
                               : 'bg-[#eaf5f4] text-[#3c8992]'
                           }`}
@@ -435,7 +474,23 @@ export default function TripDashboard() {
                             <ExternalLink size={12} />
                           </a>
                         )}
+                        {activity.mapUrl && (
+                          <a
+                            href={activity.mapUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Searches OpenStreetMap for this name; not a verified location or route"
+                            className="inline-flex items-center gap-1 text-[#3c8992] hover:underline"
+                          >
+                            <MapIcon size={12} /> Find on map
+                          </a>
+                        )}
                       </div>
+                      {activity.travel && (
+                        <p className="mt-2 flex items-center gap-1 text-xs text-[#68818b]">
+                          <Footprints size={12} /> {activity.travel}
+                        </p>
+                      )}
                     </div>
                     <ChevronRight className="hidden self-center text-[#9bb9c0] sm:block" size={20} />
                   </article>

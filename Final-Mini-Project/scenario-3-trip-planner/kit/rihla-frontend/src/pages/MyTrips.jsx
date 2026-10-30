@@ -1,73 +1,73 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
   CalendarDays,
   Compass,
-  Download,
   MapPin,
   Plane,
   Plus,
   Search,
+  ShieldAlert,
+  ShieldCheck,
   Sparkles,
   BriefcaseBusiness,
+  Trash2,
   Users,
   Wallet,
 } from 'lucide-react'
+import { deleteSavedTrip, getSavedTrip, listSavedTrips, summarizeSavedTrip } from '../services/savedTrips'
+import { FALLBACK_IMAGE, formatDate, formatMoney } from '../services/itineraryAdapter'
 
-const demoTrips = [
-  {
-    id: 1,
-    destination: 'Istanbul',
-    country: 'Türkiye',
-    dates: 'Oct 29 â€“ 31, 2026',
-    travellers: 2,
-    budget: '$1,500',
-    days: 3,
-    status: 'Upcoming',
-    image:
-      'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=1100&q=85',
-  },
-  {
-    id: 2,
-    destination: 'Paris',
-    country: 'France',
-    dates: 'Dec 10 â€“ 15, 2026',
-    travellers: 2,
-    budget: '$2,400',
-    days: 6,
-    status: 'Completed',
-    image:
-      'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1100&q=85',
-  },
-  {
-    id: 3,
-    destination: 'Rome',
-    country: 'Italy',
-    dates: 'Jan 5 â€“ 9, 2027',
-    travellers: 1,
-    budget: '$1,800',
-    days: 5,
-    status: 'Draft',
-    image:
-      'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=1100&q=85',
-  },
-]
+const FILTERS = ['All Trips', 'Verified', 'Not verified']
+
+function loadTrips() {
+  return listSavedTrips().map(summarizeSavedTrip)
+}
+
+function formatRange(start, end) {
+  if (!start) return 'Dates unknown'
+  return start === end ? formatDate(start) : `${formatDate(start)} – ${formatDate(end)}`
+}
 
 export default function MyTrips() {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState('All Trips')
+  const [trips, setTrips] = useState(loadTrips)
+  const [error, setError] = useState('')
 
-  const filteredTrips = demoTrips.filter((trip) => {
-    const matchesSearch = `${trip.destination} ${trip.country}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
-
+  const filteredTrips = trips.filter((trip) => {
+    const matchesSearch = trip.destination.toLowerCase().includes(search.trim().toLowerCase())
     const matchesStatus =
-      activeFilter === 'All Trips' || trip.status === activeFilter
+      activeFilter === 'All Trips'
+      || (activeFilter === 'Verified' ? trip.verified : !trip.verified)
 
     return matchesSearch && matchesStatus
   })
+
+  const openTrip = (id) => {
+    const entry = getSavedTrip(id)
+    if (!entry) {
+      setError('That trip is no longer saved in this browser.')
+      setTrips(loadTrips())
+      return
+    }
+    navigate('/trip', {
+      state: { ...entry.request, sessionId: entry.id, aiResult: entry.aiResult, fromSaved: true },
+    })
+  }
+
+  const removeTrip = (trip) => {
+    if (!window.confirm(`Delete your ${trip.destination} trip from this browser? This cannot be undone.`)) return
+    setError('')
+    try {
+      deleteSavedTrip(trip.id)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'The trip could not be deleted.')
+    }
+    setTrips(loadTrips())
+  }
 
   return (
     <main className="min-h-screen bg-[#edf5f7] text-[#1c3544]">
@@ -85,9 +85,9 @@ export default function MyTrips() {
             <Link to="/" className="hover:text-[#256a77]">
               Home
             </Link>
-            <Link to="/trip" className="hover:text-[#256a77]">
+            <a href="/#planner" className="hover:text-[#256a77]">
               Trip Planner
-            </Link>
+            </a>
             <span className="font-bold text-[#256a77]">My Trips</span>
           </div>
 
@@ -140,7 +140,7 @@ export default function MyTrips() {
             </p>
             <h2 className="text-3xl font-bold tracking-tight">My Trips</h2>
             <p className="mt-2 text-sm text-[#8297a0]">
-              Preview collection Â· Trips are not saved to an account yet.
+              Saved in this browser on this device only · Not synced to an account.
             </p>
           </div>
 
@@ -168,10 +168,11 @@ export default function MyTrips() {
 
         {/* TRIP FILTERS */}
         <div className="mb-8 flex flex-wrap gap-3">
-          {['All Trips', 'Draft', 'Upcoming', 'Completed'].map((filter) => (
+          {FILTERS.map((filter) => (
             <button
               key={filter}
               type="button"
+              aria-pressed={activeFilter === filter}
               onClick={() => setActiveFilter(filter)}
               className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
                 activeFilter === filter
@@ -184,6 +185,12 @@ export default function MyTrips() {
           ))}
         </div>
 
+        {error && (
+          <p role="alert" className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </p>
+        )}
+
         {/* TRIP CARDS */}
         {filteredTrips.length > 0 ? (
           <div className="grid gap-7 md:grid-cols-2 xl:grid-cols-3">
@@ -194,21 +201,28 @@ export default function MyTrips() {
               >
                 <div className="relative h-56 overflow-hidden">
                   <img
-                    src={trip.image}
-                    alt={`${trip.destination}, ${trip.country}`}
+                    src={FALLBACK_IMAGE.replace('w=500', 'w=1100')}
+                    alt=""
                     className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                   />
 
                   <div className="absolute inset-0 bg-gradient-to-t from-[#102f3b]/60 via-transparent to-transparent" />
 
-                  <span className="absolute left-5 top-5 rounded-full border border-white/40 bg-white/85 px-4 py-2 text-xs font-bold text-[#245c6a] backdrop-blur-xl">
-                    {trip.status}
+                  <span
+                    className={`absolute left-5 top-5 flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-bold backdrop-blur-xl ${
+                      trip.verified
+                        ? 'border-emerald-200 bg-emerald-50/90 text-emerald-700'
+                        : 'border-amber-200 bg-amber-50/90 text-amber-700'
+                    }`}
+                  >
+                    {trip.verified ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
+                    {trip.verified ? 'Verified' : 'Not verified'}
                   </span>
 
                   <div className="absolute bottom-5 left-6 text-white">
                     <p className="mb-1 flex items-center gap-1.5 text-xs text-white/85">
                       <MapPin size={14} />
-                      {trip.country}
+                      Saved {new Date(trip.savedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </p>
                     <h3 className="text-3xl font-bold">{trip.destination}</h3>
                   </div>
@@ -218,45 +232,51 @@ export default function MyTrips() {
                   <div className="grid grid-cols-2 gap-4 text-sm text-[#6f8993]">
                     <div className="flex items-center gap-2">
                       <CalendarDays size={17} className="text-[#65aab3]" />
-                      <span>{trip.dates}</span>
+                      <span>{formatRange(trip.startDate, trip.endDate)}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <Compass size={17} className="text-[#65aab3]" />
-                      <span>{trip.days} days</span>
+                      <span>
+                        {trip.dayCount} {trip.dayCount === 1 ? 'day' : 'days'} · {trip.activityCount}{' '}
+                        {trip.activityCount === 1 ? 'stop' : 'stops'}
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <Users size={17} className="text-[#65aab3]" />
                       <span>
-                        {trip.travellers}{' '}
+                        {trip.travellers ?? 'Unknown'}{' '}
                         {trip.travellers === 1 ? 'traveller' : 'travellers'}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <Wallet size={17} className="text-[#65aab3]" />
-                      <span>{trip.budget}</span>
+                      <span>
+                        {trip.budgetTotal === null ? 'No budget' : formatMoney(trip.budgetTotal, trip.currency)}
+                      </span>
                     </div>
                   </div>
 
                   <div className="mt-6 flex items-center gap-3 border-t border-[#edf2f3] pt-5">
-                    <Link
-                      to="/trip"
+                    <button
+                      type="button"
+                      onClick={() => openTrip(trip.id)}
                       className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#245c6a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#347989]"
                     >
                       View itinerary
                       <ArrowRight size={16} />
-                    </Link>
+                    </button>
 
                     <button
                       type="button"
-                      disabled
-                      title="PDF export is coming soon"
-                      aria-label={`Download ${trip.destination} PDF - coming soon`}
-                      className="cursor-not-allowed rounded-xl bg-[#edf5f6] p-3 text-[#a0b4bc]"
+                      onClick={() => removeTrip(trip)}
+                      aria-label={`Delete ${trip.destination} trip`}
+                      title="Delete from this browser"
+                      className="rounded-xl bg-[#edf5f6] p-3 text-[#a35c5c] transition hover:bg-red-50"
                     >
-                      <Download size={18} />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </div>
@@ -266,21 +286,24 @@ export default function MyTrips() {
         ) : (
           <div className="rounded-[28px] border border-[#dfeaec] bg-white px-6 py-20 text-center">
             <BriefcaseBusiness size={38} className="mx-auto mb-4 text-[#79afb6]" />
-            <h3 className="text-xl font-bold">No matching trips</h3>
+            <h3 className="text-xl font-bold">
+              {trips.length ? 'No matching trips' : 'No saved trips yet'}
+            </h3>
             <p className="mt-2 text-sm text-[#8297a0]">
-              Try searching for another destination.
+              {trips.length
+                ? 'Try another destination or filter.'
+                : 'Plan a trip, then press "Save trip to this browser" on the itinerary page.'}
             </p>
           </div>
         )}
 
         <div className="mt-10 rounded-2xl border border-[#d7e8ea] bg-[#e6f2f3] p-5 text-sm leading-6 text-[#64848d]">
-          <strong>Design preview:</strong> These are sample trips for
-          demonstrating the interface. Real trip history will appear here
-          after we connect user accounts and persistent storage.
+          <strong>Stored locally:</strong> trips are kept in this browser&apos;s storage. Clearing site
+          data, or using another browser or device, will not show them. No account or cloud sync is involved.
         </div>
 
         <footer className="pt-12 text-center text-sm text-[#8aa0aa]">
-          Made for the curious. Powered by Rihla âœ¨
+          Made for the curious. Powered by Rihla ✨
         </footer>
       </div>
     </main>
