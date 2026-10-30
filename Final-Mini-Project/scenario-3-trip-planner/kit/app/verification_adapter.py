@@ -1,11 +1,11 @@
-﻿"""Real verification and targeted revision integration."""
+"""Real verification and targeted revision integration."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from planning.research import ResearchBundle
-from planning.verifier_agent import run_verifier_agent
+from planning.verifier_agent import VerifierAgentError, python_explanation, run_verifier_agent
 from planning.revision_agent import run_targeted_revision
 
 
@@ -29,15 +29,21 @@ def run_verification_pipeline(
             "itinerary_model": None,
         }
 
-    verifier_report = run_verifier_agent(
-        itinerary=itinerary,
-        research_bundle=research_bundle,
-        llm=llm,
-        budget_report=budget_report,
-        planner_report=planner_report,
-        hours_lookup=hours_lookup,
-        travel_lookup=travel_lookup,
-    )
+    try:
+        verifier_report = run_verifier_agent(
+            itinerary=itinerary,
+            research_bundle=research_bundle,
+            llm=llm,
+            budget_report=budget_report,
+            planner_report=planner_report,
+            hours_lookup=hours_lookup,
+            travel_lookup=travel_lookup,
+        )
+    except VerifierAgentError as error:
+        # The verdict is Python's and survives an LLM failure: only the agent's
+        # ranking and wording are replaced by Python's (decided_by "python").
+        print("Verifier agent failed; Python's ranking is used:", error.rejections)
+        verifier_report = python_explanation(error)
 
     if verifier_report.verified:
         return {

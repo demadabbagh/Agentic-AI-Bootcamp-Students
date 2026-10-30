@@ -134,7 +134,7 @@ class Activity(BaseModel):
         if self.cost_status == "range":
             parts.append(f"Sources disagree: {_fmt(self.cost_min)}-{_fmt(self.cost_max)} {currency}; "
                          f"{_fmt(self.estimated_cost)} {currency} used for the budget (estimate)")
-        else:
+        elif labels[self.cost_status] not in (self.notes or ""):  # the cost note may already say it
             parts.append(labels[self.cost_status])
         if self.start_time is not None and self.duration_is_estimate:
             parts.append("Duration is a planning estimate")

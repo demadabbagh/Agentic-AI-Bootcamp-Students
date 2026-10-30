@@ -560,3 +560,22 @@ def test_revision_targets_name_the_place_date_and_codes():
     assert targets[("reprice_activity", MON, HAGIA)].codes == ["activity_cost_mismatch"]
     assert all(t.kind == "plan_change" for t in targets.values())
     assert all(i.recommended_action in get_args(RevisionAction) for i in out.findings)
+
+
+def test_prefetched_lookups_give_the_same_answers_and_log_as_one_by_one():
+    """The verification asks its ~40 lookups at once; the results and the call log do not change."""
+    import threading
+    from planning.verification import FreshLookups
+    seen, lock = [], threading.Lock()
+
+    def hours(name):
+        with lock:
+            seen.append(name)
+        return {"ok": True, "name": name, "mode": "live"}
+
+    lookups = FreshLookups(hours, None, max_lookups=3)
+    lookups.prefetch([("get_opening_hours", (n,)) for n in ("a", "b", "c", "d")] + [("travel_time", ("a", "b"))])
+    assert sorted(seen) == ["a", "b", "c"]  # the limit holds; no travel source, no travel question
+    assert [c["args"] for c in lookups.calls] == [["a"], ["b"], ["c"]]  # in question order
+    assert lookups.hours("a")["name"] == "a" and len(seen) == 3  # answered from the prefetch
+    assert lookups.hours("d") is None and lookups.skipped == 1  # over the limit: no lookup, said so

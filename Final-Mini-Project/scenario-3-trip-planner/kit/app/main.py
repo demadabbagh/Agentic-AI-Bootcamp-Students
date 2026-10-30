@@ -1,6 +1,7 @@
 import os
 import json
 import hashlib
+import logging
 from copy import deepcopy
 from uuid import uuid4
 from threading import Lock
@@ -11,9 +12,13 @@ from app.schemas import ChatRequest, ChatResponse, ApproveRequest
 from app.memory import get_session
 from app.orchestrator import orchestrate_trip
 from app.trip_store import TripStoreError, save_trip_to_store
+from app.diagnostics import safe_traceback
 
 
 app = FastAPI(title="Rihla Trip Planner")
+
+# uvicorn's own error logger: printed in the backend console.
+logger = logging.getLogger("uvicorn.error")
 
 _approval_lock = Lock()
 
@@ -36,12 +41,24 @@ def chat(request: ChatRequest):
         result = orchestrate_trip(
             request.message,
             session_id=request.session_id,
+            trip_form=request.trip.model_dump(mode="json") if request.trip else None,
         )
 
     except Exception as exc:
+        # The client gets a generic message; the server log gets the
+        # cause (secrets redacted), matched by the error id.
+        error_id = uuid4().hex[:8]
+        logger.error(
+            "POST /api/chat failed (error id %s):\n%s",
+            error_id,
+            safe_traceback(exc),
+        )
         raise HTTPException(
             status_code=503,
-            detail="The trip planning service is temporarily unavailable.",
+            detail=(
+                "The trip planning service is temporarily unavailable. "
+                f"(error id {error_id})"
+            ),
         ) from exc
 
     status = result["status"]
@@ -71,6 +88,9 @@ def chat(request: ChatRequest):
     else:
         final_verification = None
 
+    coverage = result.get("coverage") if isinstance(result.get("coverage"), dict) else None
+    coverage_ok = coverage is not None and coverage.get("sufficient") is True
+
     trusted_verification = (
         status == "verified"
         and isinstance(verification_result, dict)
@@ -79,6 +99,7 @@ def chat(request: ChatRequest):
         and final_verification.status == "PASS"
         and final_verification.verified is True
         and final_verification.evidence_basis == "fresh"
+        and coverage_ok
     )
 
     if trusted_verification:
@@ -118,8 +139,15 @@ def chat(request: ChatRequest):
     elif status == "verification_required":
         itinerary = deepcopy(result.get("itinerary"))
 
-    else:
-        itinerary = deepcopy(session.get("itinerary"))
+    # Any other status (needs_revision, needs_clarification, errors...)
+    # carries no itinerary: the session's previous one is kept for later
+    # revision, but never returned as if it were this request's result.
+
+    if coverage is not None and coverage.get("sufficient") is False:
+        status = "needs_revision"
+        itinerary = None
+
+    plan_quality = result.get("plan_quality") if isinstance(result.get("plan_quality"), dict) else None
 
     return ChatResponse(
         session_id=request.session_id,
@@ -127,6 +155,11 @@ def chat(request: ChatRequest):
         itinerary=itinerary,
         pending_action=pending_action,
         message=result.get("message"),
+        coverage=deepcopy(coverage),
+        plan_quality=deepcopy(plan_quality) if itinerary is not None else None,
+        performance=deepcopy(result.get("performance")) if isinstance(result.get("performance"), dict) else None,
+        summary=deepcopy(result.get("summary")) if itinerary is not None and isinstance(result.get("summary"), dict)
+        else None,
     )
 
 
@@ -173,14 +206,6 @@ def approve(request: ApproveRequest):
                 detail="Trip has not passed real verification.",
             )
 
-        traveller_id = os.getenv("TRAVEL_TRAVELLER_ID", "").strip()
-
-        if not traveller_id:
-            raise HTTPException(
-                status_code=503,
-                detail="Traveller ID is not configured.",
-            )
-
         itinerary = deepcopy(
             pending["payload"]["itinerary"]
         )
@@ -202,6 +227,16 @@ def approve(request: ApproveRequest):
             raise HTTPException(
                 status_code=403,
                 detail="Itinerary changed after verification.",
+            )
+
+        # Configuration is checked after the integrity checks: a tampered or
+        # unverified action is refused (403) whatever the server's settings.
+        traveller_id = os.getenv("TRAVEL_TRAVELLER_ID", "").strip()
+
+        if not traveller_id:
+            raise HTTPException(
+                status_code=503,
+                detail="Traveller ID is not configured.",
             )
 
         try:

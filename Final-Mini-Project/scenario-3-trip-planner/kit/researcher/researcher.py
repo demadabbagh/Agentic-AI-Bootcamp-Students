@@ -25,6 +25,15 @@ def default_llm() -> LLM:
                api_key=os.environ["OPENROUTER_API_KEY"], temperature=0)
 
 
+ATTRACTION_LIMIT_MIN, ATTRACTION_LIMIT_MAX = 15, 30
+
+
+def attraction_limit(days: int) -> int:
+    """How many attractions to research: enough for about two or three a day plus alternatives, so a long trip
+    is not planned from the same 15 places a weekend gets (15 up to a 3-day trip, 24 for 6 days, at most 30)."""
+    return max(ATTRACTION_LIMIT_MIN, min(ATTRACTION_LIMIT_MAX, 4 * days))
+
+
 class ResearchSession:
     def __init__(self, trip: TripRequest | dict, caller: Caller = call_read_tool):
         self.trip = trip if isinstance(trip, TripRequest) else TripRequest.model_validate(trip)
@@ -38,7 +47,8 @@ class ResearchSession:
     def collect_baseline(self) -> None:
         """The calls every plan needs, made in code so they never depend on the LLM."""
         t, city = self.trip, self.trip.destination
-        self._call("find_attractions", {"city": city, "interests": ",".join(t.interests) or None, "limit": 15})
+        self._call("find_attractions", {"city": city, "interests": ",".join(t.interests) or None,
+                                        "limit": attraction_limit(t.days)})
         for place in t.required_places:
             self._call("find_attractions", {"city": city, "interests": place, "limit": 3})
             self._call("get_opening_hours", {"place_name": place, "city": city})

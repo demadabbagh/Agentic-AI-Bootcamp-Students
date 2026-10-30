@@ -53,8 +53,10 @@ def test_the_live_3_3_2_plan_is_valid_but_walks_far():
     assert report.status == "complete" and validate_day_all(report)
     walks = {e.place_id: e.travel_minutes for e in report.evidence if e.travel_status == "measured"}
     assert walks[SULEYMANIYE] == 32 and walks[HAGIA] == 45 and measured_minutes(report) == 103
-    assert ("long_walk", "meal_time") == tuple(sorted({q.code for q in report.quality}))
-    assert report.plan_summary[2] == "2026-11-04 (Wed): 09:00-10:30 Basilica Cistern, 10:43-11:43 Ali Usta Çiğ Köfte"
+    assert ("long_walk",) == tuple(sorted({q.code for q in report.quality}))
+    # Ali Usta used to be "lunch" at 10:43; reached 77 minutes before lunch, it now waits for 12:00 (shown).
+    assert report.plan_summary[2] == "2026-11-04 (Wed): 09:00-10:30 Basilica Cistern, 12:00-13:00 Ali Usta Çiğ Köfte"
+    assert next(e.wait_minutes for e in report.evidence if e.place_id == ALI_USTA) == 77
 
 
 def test_the_candidate_is_feasible_and_walks_less_than_half():

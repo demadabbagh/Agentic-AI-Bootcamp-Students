@@ -312,7 +312,7 @@ class ScheduledStop(BaseModel):
     travel: TravelLeg | None = None  # from the previous scheduled stop; None for the first stop of the day
     gap_minutes: int = 0  # reserved before this stop: the measured travel time or the planning buffer
     buffer_used: bool = False  # the gap is the planning buffer, not a travel time
-    wait_minutes: int = 0  # waiting after arrival for the place to open
+    wait_minutes: int = 0  # waiting after arrival: for the place to open, or a restaurant for the meal time
     reason: str | None = None  # why it was not scheduled
 
 
@@ -356,6 +356,20 @@ def _fit(arrive: int, duration: int, hours: DayHours, day_end: int) -> tuple[int
     return None
 
 
+MEAL_WAIT_MAX = 90  # a restaurant reached up to this long before lunch or dinner waits for the meal time
+
+
+def _meal_start(stop: Stop, arrive: int, rules: ScheduleRules) -> int:
+    """A restaurant reached shortly before a meal time is visited at the meal time, not at 10:30."""
+    if stop.category != "restaurant":
+        return arrive
+    for start, _ in (rules.lunch, rules.dinner):
+        begin = to_minutes(start)
+        if 0 < begin - arrive <= MEAL_WAIT_MAX:
+            return begin
+    return arrive
+
+
 def schedule_day(day: dt.date, stops: Sequence[Stop], rules: ScheduleRules, travel: TravelTimes) -> DaySchedule:
     """Place `stops` on `day` in the given order: travel (or the buffer) first, then the earliest time the place
     is open, never past the planning day. A stop that is closed or does not fit is reported, not moved."""
@@ -381,7 +395,9 @@ def schedule_day(day: dt.date, stops: Sequence[Stop], rules: ScheduleRules, trav
         leg = travel.leg(prev, stop) if prev else None
         gap = 0 if leg is None else (leg.minutes if leg.status == "measured" else rules.travel_buffer_minutes)
         arrive = clock + gap
-        slot = _fit(arrive, duration, hours, day_end)
+        slot = _fit(_meal_start(stop, arrive, rules), duration, hours, day_end)
+        if slot is None:  # waiting for the meal time does not fit: the earliest visit, as before
+            slot = _fit(arrive, duration, hours, day_end)
         if slot is None:
             opening = f"open {hours.windows_text}" if hours.windows else "opening hours unknown"
             reason = (f"a {duration}-minute visit does not fit: earliest arrival {to_hhmm(min(arrive, MIDNIGHT - 1))}, "

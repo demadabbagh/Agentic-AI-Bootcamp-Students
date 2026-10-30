@@ -27,6 +27,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from . import google_places as gp
 from . import travel_data as td
 
 SERVICE = "rihla-travel-api"
@@ -38,7 +39,13 @@ PREF_FIELDS = {"budget_style": str, "interests": list, "dietary": list, "walking
                "max_walk_minutes": int, "home_currency": str, "travel_party": str, "notes": str}
 NOT_BOOKED = "Saved in the simulated Rihla Trip Store. Nothing was booked, reserved or paid."
 
-app = FastAPI(title="Rihla travel gateway (simulated)", version="1.0",
+class UTF8JSONResponse(JSONResponse):
+    """JSON with its charset stated: Windows PowerShell 5.1 reads a bare application/json as ISO-8859-1 and
+    shows UTF-8 text such as 'Musée' as 'MusÃ©e'. The bytes were always UTF-8."""
+    media_type = "application/json; charset=utf-8"
+
+
+app = FastAPI(title="Rihla travel gateway (simulated)", version="1.0", default_response_class=UTF8JSONResponse,
               description="Real open travel data with a record/replay cache, plus a simulated Trip Store. "
                           "Rihla is fictional. /admin endpoints are test-only.")
 LOCK = threading.Lock()
@@ -75,7 +82,7 @@ reset_state()
 
 # ------------------------------------------------------------------ errors, auth, faults, log
 def error_response(status: int, code: str, message: str, **extra) -> JSONResponse:
-    return JSONResponse(status_code=status, content={"error": {"code": code, "message": message, **extra}})
+    return UTF8JSONResponse(status_code=status, content={"error": {"code": code, "message": message, **extra}})
 
 
 @app.exception_handler(td.DataError)
@@ -150,13 +157,14 @@ def overlays() -> dict:
 
 
 def listings_for(city: str) -> tuple[list[dict], dict]:
-    listings, meta = td.city_listings(city)
+    # Google Places only when selected, in a live mode, for a city outside the replay cache (gp.enabled_for).
+    listings, meta = gp.city_listings(city) if gp.enabled_for(city) else td.city_listings(city)
     return td.with_overlays(listings, meta["city"], overlays()), meta
 
 
 def wv_envelope(meta: dict) -> dict:
-    return {"source": "Wikivoyage", "source_url": meta["pages"][-1], "source_pages": meta["pages"],
-            "licence": td.WV_LICENCE, "retrieved_at": meta["retrieved_at"], "mode": meta["mode"],
+    return {"source": meta.get("source", "Wikivoyage"), "source_url": meta["pages"][-1], "source_pages": meta["pages"],
+            "licence": meta.get("licence", td.WV_LICENCE), "retrieved_at": meta["retrieved_at"], "mode": meta["mode"],
             "overlays_active": overlays()["names"]}
 
 
@@ -177,7 +185,7 @@ def index():
 def health():
     return {"status": "ok", "service": SERVICE, "mode": td.data_mode(), "travel_mode_setting": td.mode(),
             "today": td.travel_today().isoformat(), "overlays": overlays()["names"],
-            "cached_cities": [c["name"] for c in td.manifest().get("cities", [])]}
+            "cached_cities": [c["name"] for c in td.manifest().get("cities", [])], "places": gp.status()}
 
 
 # ------------------------------------------------------------------ read side (real data)
@@ -217,7 +225,7 @@ def attractions(city: str = Query(..., min_length=2), interest: str | None = Que
     listings, meta = listings_for(city)
     wanted = td.interest_tags(interest)
     items = [l for l in listings if l["kind"] in ("see", "do", "buy") and td.matches_interest(l, wanted)]
-    items.sort(key=lambda l: l.get("lat") is None)  # stable: page order, mappable places first
+    items = td.distribute(items, wanted)  # most relevant first, spread over the districts, mappable first
     names = [td.fold(w) for w in wanted if w not in td.TAG_RULES]
     if names:  # a place name as the interest: the listing with that name comes first
         items.sort(key=lambda l: not any(n in td.fold(f"{l['name']} {l.get('alt') or ''}") for n in names))
@@ -246,7 +254,7 @@ def restaurants(city: str = Query(..., min_length=2), budget: str = "any", limit
         raise ApiError(422, "bad_kind", "kind must be eat, drink or any.")
     listings, meta = listings_for(city)
     items = [l for l in listings if l["kind"] in kinds and (tier == "any" or l.get("price_tier") == tier)]
-    items.sort(key=lambda l: l.get("lat") is None)
+    items = td.distribute(items, [])  # spread over the districts, mappable places first
     out = [td.enrich(l, overlays()) for l in items[:limit]]
     return {"city": meta["city"], "budget": tier, "count": len(out), "total_matching": len(items), "restaurants": out,
             **wv_envelope(meta),
@@ -260,7 +268,8 @@ def hours(name: str = Query(..., min_length=2), city: str = Query(..., min_lengt
     listings, meta = listings_for(city)
     item, suggestions = td.find_listing(listings, name)
     if not item:
-        raise ApiError(404, "place_not_found", f"No Wikivoyage listing called '{name}' in {meta['city']}.",
+        raise ApiError(404, "place_not_found",
+                       f"No {meta.get('source', 'Wikivoyage')} listing called '{name}' in {meta['city']}.",
                        suggestions=suggestions)
     e = td.enrich(item, overlays())
     known = e["hours"] is not None
@@ -270,7 +279,7 @@ def hours(name: str = Query(..., min_length=2), city: str = Query(..., min_lengt
     return {"query": name, "name": item["name"], "id": item["id"], "city": meta["city"], "district": item.get("district"),
             "known": known, "hours": e["hours"], "price": e["price"], **extra, "lat": item.get("lat"), "lon": item.get("lon"),
             "official_url": item.get("url"), "last_edit": item.get("last_edit"),
-            "synthetic": e["synthetic"], **wv_envelope(meta), "source": "Wikivoyage listing",
+            "synthetic": e["synthetic"], **wv_envelope(meta), "source": f"{meta.get('source', 'Wikivoyage')} listing",
             "source_url": item["source_url"], "citation": e["citation"], "note": note}
 
 
@@ -449,7 +458,7 @@ def save_trip(body: dict = Body(..., examples=[{"traveller_id": "TRV-101", "titl
             seen = STATE["idempotency"][idempotency_key]
             if seen["digest"] != digest:
                 raise ApiError(409, "idempotency_conflict", "This Idempotency-Key was already used with a different body.")
-            return JSONResponse(status_code=201, content=seen["response"], headers={"Idempotent-Replayed": "true"})
+            return UTF8JSONResponse(status_code=201, content=seen["response"], headers={"Idempotent-Replayed": "true"})
         trip_id = f"TRIP-{STATE['next_trip']}"
         STATE["next_trip"] += 1
         rec = trip_record(trip_id, body, idempotency_key)

@@ -1,4 +1,4 @@
-﻿function buildTripMessage(trip) {
+function buildTripMessage(trip) {
   const details = [
     `Plan a trip to ${trip.destination}.`,
     `Departure date: ${trip.departureDate}.`,
@@ -18,32 +18,73 @@
   return details.join('\n')
 }
 
+// The form's own fields, sent as they are: the backend uses them exactly (the
+// selected interests are never re-read from the message by an LLM).
+export function buildTripForm(trip) {
+  return {
+    destination: trip.destination.trim(),
+    start_date: trip.departureDate,
+    end_date: trip.returnDate,
+    travellers: Number(trip.travellers),
+    budget: Number(trip.budget),
+    currency: 'USD',
+    interests: [...(trip.interests || [])],
+    preferences: trip.customPreferences?.trim() || null,
+  }
+}
+
+// FastAPI's 422 detail is a list of {loc, msg}: show the messages, not "Request failed".
+function validationMessage(detail) {
+  if (!Array.isArray(detail)) return null
+  const messages = detail
+    .map((item) => String(item?.msg || '').replace(/^Value error, /, ''))
+    .filter(Boolean)
+  return messages.length ? `Please check the trip details: ${messages.join(' ')}` : null
+}
+
+const STATUS_MESSAGES = {
+  402: 'The AI provider declined the request (payment required). No trip was generated.',
+  503: 'The trip planning service is temporarily unavailable. No trip was generated, please try again later.',
+}
+
 export async function createTrip(trip, sessionId) {
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      session_id: sessionId,
-      message: buildTripMessage(trip),
-    }),
-  })
+  let response
+
+  try {
+    response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        session_id: sessionId,
+        message: buildTripMessage(trip),
+        trip: buildTripForm(trip),
+      }),
+    })
+  } catch {
+    throw new Error('Could not reach the Rihla backend. Check that it is running, then try again.')
+  }
 
   if (!response.ok) {
-    let detail = `Request failed (${response.status})`
+    let detail = `Request failed (${response.status}). No trip was generated.`
 
     try {
       const error = await response.json()
-      detail = typeof error.detail === 'string'
-        ? error.detail
-        : JSON.stringify(error.detail ?? error)
-    } catch {
+      if (typeof error.detail === 'string') detail = error.detail
+      const invalid = response.status === 422 ? validationMessage(error.detail) : null
+      if (invalid) throw new Error(invalid)
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith('Please check the trip details')) throw err
       // Keep the HTTP error message.
     }
 
-    throw new Error(detail)
+    throw new Error(STATUS_MESSAGES[response.status] || detail)
   }
 
-  return response.json()
+  try {
+    return await response.json()
+  } catch {
+    throw new Error('The planner returned an unreadable response. No trip was generated.')
+  }
 }

@@ -1,4 +1,5 @@
 import os
+import time
 from typing import Any
 
 from crewai import LLM
@@ -40,7 +41,9 @@ def create_planning_llm() -> LLM:
         api_key=api_key,
         base_url=base_url,
         temperature=0,
-        max_tokens=1500,
+        # A ceiling, not a target: the Budget Analyst decides 30+ places (each with a rank, the interests it
+        # serves and a short reason); 1500 cut that answer short in a live Paris run.
+        max_tokens=4000,
     )
 
 
@@ -66,18 +69,22 @@ def run_planning_pipeline(
         llm = create_planning_llm()
 
     # STEP 1: Budget Analyst
+    started = time.perf_counter()
     budget_report = run_budget_analyst(
         bundle=research_bundle,
         llm=llm,
     )
+    budget_ms = round((time.perf_counter() - started) * 1000)
 
     # STEP 2: Itinerary Planner
+    started = time.perf_counter()
     planner_report = plan_itinerary(
         report=budget_report,
         bundle=research_bundle,
         llm=llm,
         travel_lookup=travel_lookup,
     )
+    planner_ms = round((time.perf_counter() - started) * 1000)
 
     # STEP 3: Prepare output
     itinerary = planner_report.itinerary
@@ -92,4 +99,5 @@ def run_planning_pipeline(
         "budget_report": budget_report,
         "planner_report": planner_report,
         "itinerary_model": itinerary,
+        "timings": {"budget_analyst_ms": budget_ms, "planner_ms": planner_ms},
     }

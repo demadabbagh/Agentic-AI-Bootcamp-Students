@@ -36,7 +36,7 @@ from .research import ResearchBundle
 from .revision import DEFAULT_MAX_LOOKUPS, MAX_ATTEMPTS, DecisionPoint, RevisionResult, revise_itinerary
 from .schedule import MIDNIGHT, ScheduleRules, TravelLookup, to_minutes
 from .verification import CheckStatus, HoursLookup, VerificationReport
-from .verifier_agent import _CLOCK, _DURATION, _MONEY, _amounts, _numbers
+from .verifier_agent import _CLOCK, _DURATION, _MONEY, _STRING, _amounts, _numbers, _strict_schema
 
 # Worst case: MAX_ITER steps x (1 + GUARDRAIL_RETRIES) attempts = 12 LLM calls, in round 1 only. A good run is two
 # calls (the required inspect_revision_options call, then the answer).
@@ -71,8 +71,11 @@ class RevisionChoice(BaseModel):
     choices: list[Choice]
 
 
-class ChoiceDraft(BaseModel):  # lenient on purpose: CrewAI validates against it before the guardrail runs
-    model_config = ConfigDict(extra="allow")
+# Lenient on purpose: CrewAI validates against the drafts before the guardrail runs. Their JSON schema is closed
+# and typed like Choice, because strict structured outputs reject anything else (see verifier_agent._strict_schema).
+class ChoiceDraft(BaseModel):
+    model_config = ConfigDict(extra="allow", json_schema_extra=_strict_schema({
+        "decision_id": _STRING, "alternative_id": _STRING, "reason": _STRING}))
 
     decision_id: Any = None
     alternative_id: Any = None
@@ -80,7 +83,7 @@ class ChoiceDraft(BaseModel):  # lenient on purpose: CrewAI validates against it
 
 
 class RevisionDraft(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", json_schema_extra=_strict_schema({}))
 
     choices: list[ChoiceDraft] = Field(default_factory=list)
 

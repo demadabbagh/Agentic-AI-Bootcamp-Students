@@ -572,3 +572,25 @@ def test_the_tool_is_read_only_and_makes_no_network_call(try_verifier):
     assert ctx.inspections == ["overview", "checks", "errors", "unknowns", "warnings", "citations",
                                "revision_targets", "finding"]
     assert len(tool.calls) == 8 and all(c["ok"] for c in tool.calls)
+
+
+# ------------------------------------------------------------------ hedged wording, and the Python fallback
+@pytest.mark.parametrize("text, certain", [
+    ("Opening hours are not yet confirmed; a fresh get_opening_hours lookup would settle it.", False),
+    ("The travel_time lookup failed, so the walk is unknown; a new lookup would settle it.", False),
+    ("Its hours could not be confirmed by the listing.", False),
+    ("It is definitely closed that day.", True),
+    ("The listing is wrong and the visit fails.", True),
+])
+def test_missing_evidence_wording_that_hedges_is_not_called_certain(text, certain):
+    from planning.verifier_agent import _states_certainty
+    assert _states_certainty(text) is certain
+
+
+def test_a_failed_verifier_agent_leaves_pythons_verdict_and_ranking():
+    from planning.verifier_agent import AGENT_FAILED_SUMMARY, VerifierAgentError, python_explanation
+    report = closed_report()
+    out = python_explanation(VerifierAgentError("x", verification=report, rejections=[{"problems": {"prose": 2}}]))
+    assert (out.status, out.verified, out.decided_by) == (report.status, report.verified, "python")
+    assert out.summary == AGENT_FAILED_SUMMARY and out.guardrail_rejections == [{"problems": {"prose": 2}}]
+    assert out.revision_targets == report.revision_targets

@@ -25,6 +25,7 @@ from __future__ import annotations
 import datetime as dt
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Callable, Iterable, Literal, NamedTuple, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
@@ -323,17 +324,43 @@ class FreshLookups:
         if len(self.calls) >= self._max:
             self.skipped += 1
             return None
-        started = time.perf_counter()
-        try:
-            result = fn(*args)
-        except Exception as exc:  # a failing tool is missing evidence, never a fact
-            result = {"ok": False, "error": {"code": "lookup_error", "message": type(exc).__name__}}
-        if not isinstance(result, dict):
-            result = {"ok": False, "error": {"code": "bad_result", "message": "the result is not a JSON object"}}
-        self.calls.append({"tool": tool, "ok": _ok(result), "ms": round((time.perf_counter() - started) * 1000),
-                           "args": list(args), "freshness": freshness_of(result) if _ok(result) else None})
-        self._cache[key] = result
+        result, ms = _call(fn, args)
+        self._record(tool, args, result, ms)
         return result
+
+    def _record(self, tool: str, args: tuple, result: dict, ms: int) -> None:
+        self.calls.append({"tool": tool, "ok": _ok(result), "ms": ms, "args": list(args),
+                           "freshness": freshness_of(result) if _ok(result) else None})
+        self._cache[(tool, *args)] = result
+
+    def prefetch(self, questions: list[tuple[str, tuple]]) -> None:
+        """Ask the questions the checks will ask, concurrently: the verification then waits for the slowest
+        lookup, not for their sum (about 40 lookups for a six-day plan). Each is a real lookup made now, within
+        the same limit; the results and the call log are the same as asking them one by one, in this order."""
+        fns = {"get_opening_hours": self._hours, "travel_time": self._travel}
+        todo = [(tool, args) for tool, args in dict.fromkeys(questions)
+                if (tool, *args) not in self._cache and fns.get(tool) is not None]
+        todo = todo[:max(0, self._max - len(self.calls))]
+        if len(todo) < 2:
+            return
+        with ThreadPoolExecutor(max_workers=min(PREFETCH_WORKERS, len(todo))) as pool:
+            futures = [pool.submit(_call, fns[tool], args) for tool, args in todo]
+            for (tool, args), future in zip(todo, futures):
+                self._record(tool, args, *future.result())
+
+
+PREFETCH_WORKERS = 6
+
+
+def _call(fn, args: tuple) -> tuple[dict, int]:
+    started = time.perf_counter()
+    try:
+        result = fn(*args)
+    except Exception as exc:  # a failing tool is missing evidence, never a fact
+        result = {"ok": False, "error": {"code": "lookup_error", "message": type(exc).__name__}}
+    if not isinstance(result, dict):
+        result = {"ok": False, "error": {"code": "bad_result", "message": "the result is not a JSON object"}}
+    return result, round((time.perf_counter() - started) * 1000)
 
 
 # ------------------------------------------------------------------ one planned visit
@@ -966,6 +993,11 @@ def verify_itinerary(itinerary: Itinerary | dict | None, bundle: ResearchBundle,
         return _report(v.found, ["itinerary"], lookups=lookups)
     v.planner_same = planner_report is not None and planner_report.itinerary == itinerary
     visits = v.resolve(itinerary)
+    # The lookups check_hours and check_travel make (every visit's hours, every consecutive pair's walk), asked at
+    # once; the checks then read the answers.
+    pairs = [(a, b) for a, b in zip(visits, visits[1:]) if a.date == b.date]
+    lookups.prefetch([("get_opening_hours", (x.activity.name,)) for x in visits] +
+                     [("travel_time", (a.activity.name, b.activity.name)) for a, b in pairs])
     v.check_itinerary(itinerary, visits)
     v.check_places(visits)
     v.check_required(visits)
