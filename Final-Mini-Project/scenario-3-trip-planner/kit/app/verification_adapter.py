@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from app.contract import record_agent_tools
@@ -23,6 +24,22 @@ def lookup_budget(itinerary: Any) -> int:
     return max(DEFAULT_MAX_LOOKUPS, LOOKUPS_PER_DAY * days)
 
 
+REPAIR_SECONDS = 1.0  # the fast path's repair: what it cannot look up in time stays unknown
+
+
+def _within(lookup, seconds: float | None):
+    """The lookup, refusing past the fast path's limit: a failed lookup is a missing fact, never a guess."""
+    if lookup is None or seconds is None:
+        return lookup
+    deadline = time.monotonic() + REPAIR_SECONDS
+
+    def bounded(*args):
+        if time.monotonic() >= deadline:
+            raise TimeoutError("the time limit for lookups was reached")
+        return lookup(*args)
+    return bounded
+
+
 def run_verification_pipeline(
     itinerary: Any,
     research_bundle: ResearchBundle,
@@ -32,6 +49,7 @@ def run_verification_pipeline(
     planner_report: Any = None,
     hours_lookup=None,
     travel_lookup=None,
+    lookup_seconds: float | None = None,
 ) -> dict:
     """Verify a planned itinerary and attempt targeted repair if needed."""
 
@@ -56,6 +74,7 @@ def run_verification_pipeline(
                 # only a long trip needs more than the verifier's own default
                 **({"max_lookups": lookup_budget(itinerary)}
                    if lookup_budget(itinerary) > DEFAULT_MAX_LOOKUPS else {}),
+                **({"lookup_seconds": lookup_seconds} if lookup_seconds is not None else {}),
             )
     except VerifierAgentError as error:
         # The verdict is Python's and survives an LLM failure: only the agent's
@@ -92,8 +111,8 @@ def run_verification_pipeline(
             llm=llm,
             verification=verifier_report.verification,
             planner_report=planner_report,
-            travel_lookup=travel_lookup,
-            hours_lookup=hours_lookup,
+            travel_lookup=_within(travel_lookup, lookup_seconds),
+            hours_lookup=_within(hours_lookup, lookup_seconds),
         )
     record_agent_tools("revision", getattr(revision_report, "agent_tool_calls", None))
 

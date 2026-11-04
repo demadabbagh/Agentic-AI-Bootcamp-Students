@@ -75,7 +75,7 @@ _ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 _NUMBER = re.compile(r"\d+(?:[.,:]\d+)*")  # 315.32, 10:30, 1,200, 30: compared as written, never rounded
 
 
-_AMOUNT = re.compile(r"([$€£₺])\s?(\d+(?:[.,]\d+)*)|(\d+(?:[.,]\d+)*)\s?([$€£₺%]|[A-Z]{3}\b|TL\b|JD\b)")
+_AMOUNT = re.compile(r"([$€£₺₪₩])\s?(\d+(?:[.,]\d+)*)|(\d+(?:[.,]\d+)*)\s?([$€£₺₪₩%]|[A-Z]{3}\b|TL\b|JD\b)")
 
 
 def _numbers(text: str) -> set[str]:
@@ -748,7 +748,7 @@ def decide_with_crew(ctx: VerifierContext, llm: BaseLLM | str) -> tuple[Verifier
     return decision, tool, result
 
 
-def explain_verification(report: VerificationReport, llm: BaseLLM | str) -> VerifierAgentReport:
+def explain_verification(report: VerificationReport, llm: BaseLLM | str | None) -> VerifierAgentReport:
     """The agent's ranking of an existing VerificationReport. No LLM call when nothing needs ranking (no errors
     and no unknowns). Raises VerifierAgentError (carrying the report) when the agent gives no valid decision."""
     ctx = VerifierContext(report)
@@ -759,6 +759,9 @@ def explain_verification(report: VerificationReport, llm: BaseLLM | str) -> Veri
         summary = ("Nothing needs fixing." if not report.warnings else
                    f"Nothing needs fixing; {len(report.warnings)} warning(s) to be aware of.")
         return VerifierAgentReport(decided_by="python", prioritized=_python_ranking(ctx), summary=summary, **common)
+    if llm is None:  # the fast path: the same verdict, with Python's own ranking of its findings
+        return VerifierAgentReport(decided_by="python", prioritized=_python_ranking(ctx), summary=PYTHON_RANKED_SUMMARY,
+                                   **common)
     if len(ctx.must_rank) > MAX_AGENT_RANKED:
         # A long trip has more findings than one ranked answer holds (a 22-day plan had 55): the agent's answer then
         # failed its guardrail on every retry, for minutes, and Python's ranking was used anyway. It is used at once.
@@ -777,6 +780,7 @@ def explain_verification(report: VerificationReport, llm: BaseLLM | str) -> Veri
 
 AGENT_FAILED_SUMMARY = ("The Verifier agent gave no valid explanation, so Python's own ranking of its findings is "
                         "shown. The verdict is Python's either way.")
+PYTHON_RANKED_SUMMARY = "Python's own ranking of its findings is shown. The verdict is Python's either way."
 MAX_AGENT_RANKED = 50  # findings the agent ranks in one answer; more (long trips) are ranked by Python
 TOO_MANY_SUMMARY = ("This plan has more findings than the Verifier agent ranks in one answer, so Python's own ranking "
                     "is shown. The verdict is Python's either way.")
@@ -796,7 +800,8 @@ def python_explanation(error: VerifierAgentError) -> VerifierAgentReport:
 def run_verifier_agent(itinerary, research_bundle: ResearchBundle, llm: BaseLLM | str, *,
                        budget_report: BudgetReport | None = None, planner_report: PlannerReport | None = None,
                        hours_lookup: HoursLookup | None = None, travel_lookup: TravelLookup | None = None,
-                       rules: ScheduleRules | None = None, max_lookups: int = DEFAULT_MAX_LOOKUPS) -> VerifierAgentReport:
+                       rules: ScheduleRules | None = None, max_lookups: int = DEFAULT_MAX_LOOKUPS,
+                       lookup_seconds: float | None = None) -> VerifierAgentReport:
     """The whole step: verify_itinerary() (Python) -> ranking (CrewAI agent, only if something needs it).
 
     Arguments as verify_itinerary(); `llm` is the crew's shared LLM, injected by the Coordinator, and the lookups
@@ -804,5 +809,5 @@ def run_verifier_agent(itinerary, research_bundle: ResearchBundle, llm: BaseLLM 
     decision: its .verification is Python's report, still usable."""
     report = verify_itinerary(itinerary, research_bundle, budget_report=budget_report, planner_report=planner_report,
                               hours_lookup=hours_lookup, travel_lookup=travel_lookup, rules=rules,
-                              max_lookups=max_lookups)
+                              max_lookups=max_lookups, lookup_seconds=lookup_seconds)
     return explain_verification(report, llm)

@@ -83,7 +83,7 @@ _INSTRUCTION_LIKE = re.compile(r"\b(?:ignore (?:all |any |the )?(?:previous|prio
                                r"you are (?:an? )?(?:ai|assistant|agent)|as an ai|(?:ai|llm) (?:agents?|assistants?)|"
                                r"(?:must|always) (?:add|include|recommend))\b", re.I)
 # An amount in the agent's prose: numbers belong to Python.
-_MONEY = re.compile(r"[$€£₺]\s?\d|\d\s?(?:[$€£₺%]|(?:[A-Z]{3}|TL|JD)\b)")
+_MONEY = re.compile(r"[$€£₺₪₩]\s?\d|\d\s?(?:[$€£₺₪₩%]|(?:[A-Z]{3}|TL|JD)\b)")
 _FOLD = str.maketrans({"ı": "i", "İ": "I", "ł": "l", "Ł": "L", "ø": "o", "Ø": "O", "đ": "d", "ß": "ss"})
 _UNSAFE = re.compile(r"[\x00-\x1f\x7f<>]")
 
@@ -1123,7 +1123,118 @@ def apply_decision(cands: CandidateSet, decision: BudgetDecision, *, run: CrewRu
         llm_usage=run.llm_usage, performance=dict(run.performance))
 
 
-def run_budget_analyst(bundle: ResearchBundle, llm: BaseLLM | str) -> BudgetReport:
+PYTHON_REASON = "Chosen by Python: fits the traveller's interests"
+PYTHON_MEAL_REASON = "Chosen by Python: a meal suggestion"
+PYTHON_SPARE_REASON = "Kept by Python as an alternative"
+
+
+def not_plannable(cands: CandidateSet, places: Iterable) -> dict[str, str]:
+    """Listings a plan should not start from, and why (never a place the traveller asked for). A listing can carry
+    another town's coordinates (a Rio monument, 678 km away in Curitiba: what the verifier questions as location_far),
+    and a typing error in a guide (₺ for ₩) made one meal 1,479 USD, so fitting the budget dropped every restaurant."""
+    from .verification import FAR_KM, _km
+    researched = {p.place_id: p for p in places}
+    mapped = [p for p in researched.values() if p.lat is not None and p.lon is not None]
+    middle = ((sorted(p.lat for p in mapped)[len(mapped) // 2], sorted(p.lon for p in mapped)[len(mapped) // 2])
+              if len(mapped) >= 3 else None)
+    trip = cands.trip
+    day = None if trip.budget_total is None else trip.budget_total / max(1, trip.days)
+    out: dict[str, str] = {}
+    for c in cands.candidates:
+        place = researched.get(c.place_id)
+        if c.required:
+            continue
+        if (middle is not None and place is not None and place.lat is not None and place.lon is not None
+                and _km(place.lat, place.lon, *middle) > FAR_KM):
+            out[c.place_id] = "Left out by Python: far from the destination's other places"
+        elif c.category == "restaurant" and day is not None and c.cost.total_max is not None and c.cost.total_max > day:
+            out[c.place_id] = "Left out by Python: more than a day's budget for one meal"
+    return out
+
+
+def python_decision(cands: CandidateSet, places: Iterable = ()) -> BudgetDecision:
+    """The selection without an LLM, by the rules the agent is given (TASK_DESCRIPTION): the plan sized for the trip,
+    every interest in similar shares, places that cannot be visited left out, about one restaurant per full day, a
+    known price preferred over an unknown one, the research's own order otherwise. The same code as for the agent's
+    decision then fits it to the budget and prices it (apply_decision): only the ranking differs. `places` (the research)
+    lets it see what the verifier sees: two listings of one spot would fail it, and the repair would then keep whichever
+    came first in the plan (the Western Wall went, its tunnel tour stayed). Here the research's own order decides."""
+    from .verification import _same_real_place
+    researched = {p.place_id: p for p in places}
+    set_aside = not_plannable(cands, places)
+    trip = cands.trip
+    low, high = target_range(trip.days, trip.activity_pace)
+    goal = (low + high) // 2
+    order = {c.place_id: n for n, c in enumerate(cands.candidates)}
+    usable, same_name = [], set()
+    names = {fold(c.name) for c in cands.candidates if c.required}
+    kept = [researched[c.place_id] for c in cands.candidates if c.required and c.place_id in researched]
+    for c in (cands.get(i) for i in cands.open_ids):
+        if c.closed_all_trip or c.not_during_trip:
+            continue
+        place = researched.get(c.place_id)
+        if c.place_id in set_aside:
+            continue
+        # two listings of one name or one spot: a traveller must not see the same place twice
+        if fold(c.name) in names or any(_same_real_place(other, place) for other in kept):
+            same_name.add(c.place_id)
+            continue
+        names.add(fold(c.name))
+        usable.append(c)
+        if place is not None:
+            kept.append(place)
+
+    def preference(c: Candidate) -> tuple:
+        return (c.cost.status == "unknown", order[c.place_id])
+
+    sights = sorted((c for c in usable if c.category == "attraction" and matches_interests(c, trip.interests)),
+                    key=preference)
+    meals = sorted((c for c in usable if c.category == "restaurant"), key=preference)
+    required_sights = sum(1 for c in cands.candidates if c.required and c.category == "attraction")
+    chosen: list[Candidate] = []
+    queues = {t: [c for c in sights if t in c.tags] for t in trip.interests if t != "food"} or {"": sights}
+    while len(chosen) + required_sights < goal and any(queues.values()):
+        for queue in queues.values():  # one place per interest in turn: one interest must not fill the trip
+            while queue and queue[0] in chosen:
+                queue.pop(0)
+            if queue and len(chosen) + required_sights < goal:
+                chosen.append(queue.pop(0))
+    for c in sights:  # interests alone did not fill the trip
+        if len(chosen) + required_sights >= goal:
+            break
+        if c not in chosen:
+            chosen.append(c)
+    chosen_meals = meals[:meal_target(trip.days)]
+    decisions, rank = [], 0
+
+    def serves(c: Candidate) -> list[str] | None:
+        return (["food"] if "food" in trip.interests else []) if c.category == "restaurant" else None
+
+    for c, reason in [(c, PYTHON_REASON) for c in chosen] + [(c, PYTHON_MEAL_REASON) for c in chosen_meals]:
+        rank += 1
+        decisions.append(PlaceDecision(place_id=c.place_id, decision="include", rank=rank, reason=reason,
+                                       serves=serves(c)))
+    taken = {d.place_id for d in decisions}
+    for place_id in cands.open_ids:
+        if place_id in taken:
+            continue
+        c = cands.get(place_id)
+        if c.closed_all_trip or c.not_during_trip:
+            decisions.append(PlaceDecision(place_id=place_id, decision="exclude",
+                                           reason="Left out by Python: it cannot be visited on these dates"))
+        elif place_id in set_aside:
+            decisions.append(PlaceDecision(place_id=place_id, decision="exclude", reason=set_aside[place_id]))
+        elif place_id in same_name:
+            decisions.append(PlaceDecision(place_id=place_id, decision="exclude",
+                                           reason="Left out by Python: another listing is the same place"))
+        else:
+            rank += 1
+            decisions.append(PlaceDecision(place_id=place_id, decision="optional", rank=rank,
+                                           reason=PYTHON_SPARE_REASON, serves=serves(c)))
+    return BudgetDecision(decisions=decisions)
+
+
+def run_budget_analyst(bundle: ResearchBundle, llm: BaseLLM | str | None) -> BudgetReport:
     """The whole step: price (Python) -> decide (CrewAI agent) -> fit and report (Python).
 
     No LLM call when there is nothing to decide (no places, or only the traveller's own).
@@ -1132,5 +1243,7 @@ def run_budget_analyst(bundle: ResearchBundle, llm: BaseLLM | str) -> BudgetRepo
     cands = prepare_candidates(bundle)
     if not cands.open_ids:
         return apply_decision(cands, BudgetDecision())
+    if llm is None:  # the fast path: Python's selection, reviewed by the agent afterwards (app/refinement.py)
+        return apply_decision(cands, python_decision(cands, bundle.places))
     run = decide_with_crew(cands, llm)
     return apply_decision(cands, run.decision, run=run)

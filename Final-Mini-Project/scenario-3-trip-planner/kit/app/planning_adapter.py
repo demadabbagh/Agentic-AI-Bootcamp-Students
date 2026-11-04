@@ -9,7 +9,8 @@ from app.contract import record_agent_tools
 from planning.research import ResearchBundle
 from planning.budget_analyst import run_budget_analyst
 from planning.itinerary_planner import plan_itinerary
-from researcher.mcp_client import stage
+from researcher import perf
+from researcher.mcp_client import current_stage, stage
 
 
 load_dotenv()
@@ -38,7 +39,7 @@ def create_planning_llm() -> LLM:
         "https://openrouter.ai/api/v1",
     )
 
-    return LLM(
+    return _timed(LLM(
         model=f"openrouter/{model_name}",
         api_key=api_key,
         base_url=base_url,
@@ -49,7 +50,27 @@ def create_planning_llm() -> LLM:
         # Bounded waiting: a stuck provider call fails (and is reported) instead of holding the request.
         timeout=float(os.getenv("RIHLA_LLM_TIMEOUT_SECONDS", "60")),
         max_retries=int(os.getenv("RIHLA_LLM_MAX_RETRIES", "2")),
-    )
+    ))
+
+
+def _timed(llm: LLM) -> LLM:
+    """Each LLM request's latency goes to the request's trace (researcher/perf.py). The answer is not touched."""
+    call = llm.call
+
+    def timed_call(*args, **kwargs):
+        started = time.perf_counter()
+        ok = False
+        try:
+            answer = call(*args, **kwargs)
+            ok = True
+            return answer
+        finally:
+            trace = perf.current()
+            if trace is not None:
+                trace.add_llm(current_stage(), round((time.perf_counter() - started) * 1000), ok)
+
+    object.__setattr__(llm, "call", timed_call)
+    return llm
 
 
 def run_planning_pipeline(
@@ -57,6 +78,8 @@ def run_planning_pipeline(
     llm: Any = None,
     *,
     travel_lookup=None,
+    use_agents: bool = True,
+    lookup_seconds: float | None = None,
 ) -> dict:
     """
     Run the real Budget Analyst and Itinerary Planner.
@@ -70,7 +93,8 @@ def run_planning_pipeline(
             "research_bundle must be a ResearchBundle instance."
         )
 
-    if llm is None:
+    # use_agents=False is the fast path: Python's selection and day plan, no LLM (app/orchestrator.py).
+    if llm is None and use_agents:
         llm = create_planning_llm()
 
     # STEP 1: Budget Analyst
@@ -87,6 +111,7 @@ def run_planning_pipeline(
     started = time.perf_counter()
     with stage("itinerary_planner"):
         planner_report = plan_itinerary(
+            **({} if lookup_seconds is None else {"lookup_seconds": lookup_seconds}),
             report=budget_report,
             bundle=research_bundle,
             llm=llm,

@@ -8,3 +8,7 @@ A value already in the environment wins over .env (load_dotenv never overrides),
 import os
 
 os.environ["RIHLA_AUTH_REQUIRED"] = "false"
+
+# The background AI review (app/refinement.py) would call a real LLM after a test has ended; tests/test_refinement.py
+# runs it explicitly.
+os.environ["RIHLA_AI_REVIEW"] = "off"

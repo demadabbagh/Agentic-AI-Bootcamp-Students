@@ -2,6 +2,7 @@ import os
 import json
 import hashlib
 import logging
+import threading
 from copy import deepcopy
 from uuid import uuid4
 from threading import Lock
@@ -9,7 +10,12 @@ from threading import Lock
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
-from app.schemas import AcceptRequest, ApproveRequest, ChatRequest, ChatResponse, SessionRequest, WhatIfApplyRequest, WhatIfRequest
+from app import refinement
+from app.mcp_lookup_adapter import prepare_city
+from researcher.mcp_client import open_session_early
+from app.schemas import (AcceptRequest, ApproveRequest, ChatRequest, ChatResponse, PrepareRequest,
+                         RefinementRequest,
+                         SessionRequest, WhatIfApplyRequest, WhatIfRequest)
 from app.memory import get_session
 from app.orchestrator import orchestrate_trip
 from app.trip_store import TripStoreError, get_trip_from_store, list_trips_from_store, save_trip_to_store, trip_title
@@ -23,12 +29,19 @@ from app.weather import install_weather
 from app.approval_policy import ACCEPTANCE_MODES, APPROVABLE_STATUSES, acceptance, approval_eligibility
 from app.traveller_memory import (describe_preferences, lasting_preferences, remember, session_preferences,
                                   traveller_id_from)
+from researcher import perf
 from researcher.mcp_client import recording
 
 
 app = FastAPI(title="Rihla Trip Planner")
 # Google sign-in (app/auth): the signed-in user's identity, RIHLA_AUTH_REQUIRED, CSRF and session ownership.
 install_auth(app)
+
+
+@app.on_event("startup")
+def start_mcp_server() -> None:
+    threading.Thread(target=open_session_early, name="mcp-open", daemon=True).start()
+
 # Read-only search boxes (docs/destinations.md, docs/airports.md): GET /api/destinations, GET /api/airports.
 install_destinations(app)
 install_flights(app)
@@ -91,7 +104,7 @@ def chat(request: ChatRequest):
         session["traveller_id"] = traveller_id
     traveller_id = session.get("traveller_id")
 
-    with recording() as calls, usage_recording() as llm_usage:
+    with recording() as calls, usage_recording() as llm_usage, perf.tracing() as trace:
         # Persistent memory through MCP: loaded once per session, saved only when asked to remember.
         memory_notes: list[str] = []
         preferences, load_status = session_preferences(session, traveller_id)
@@ -142,6 +155,9 @@ def chat(request: ChatRequest):
 
         tool_calls = [dict(call) for call in calls]
         usage = build_usage(llm_usage, result.get("performance"))
+        if isinstance(result.get("performance"), dict):
+            result["performance"]["trace"] = trace.summary()
+            logger.info("rihla.perf %s", json.dumps({"session": request.session_id[:12], **result["performance"]["trace"]}))
 
     if result.get("preferences_used"):
         memory_notes.append("Used for this plan: " + "; ".join(result["preferences_used"]) + ".")
@@ -313,6 +329,7 @@ def _plan_response(session_id: str, session: dict, result: dict, *, traveller_id
         revision=deepcopy(revision_info),
         memory_notes=memory_notes,
         whatif=deepcopy(result.get("whatif")) if isinstance(result.get("whatif"), dict) else None,
+        refinement=deepcopy(result.get("refinement")) if isinstance(result.get("refinement"), dict) else None,
         pending_acceptance=_public_acceptance(pending_acceptance),
     )
 
@@ -501,6 +518,35 @@ def accept(request: AcceptRequest):
 def _whatif_session(session_id: str) -> dict:
     """The session's plan, for its own traveller only (the middleware already bound the session to its user)."""
     return get_session(session_id)
+
+
+@app.post("/api/plan/prepare", status_code=202)
+def plan_prepare(request: PrepareRequest):
+    """The traveller picked a destination: start reading its guide while they fill in the form. Saves time, changes
+    no answer, returns at once."""
+    return {"status": prepare_city(request.destination)}
+
+
+# ------------------------------------------------------------------ the AI review of a fast plan (app/refinement.py)
+@app.post("/api/plan/refinement")
+def plan_refinement(request: RefinementRequest):
+    """Where the agents' review of the plan on screen stands: running, no_change, ready (with what it would change),
+    failed, or stale. The plan is not changed by asking."""
+    return refinement.status(get_session(request.session_id), request.base_version)
+
+
+@app.post("/api/plan/refinement/apply", response_model=ChatResponse)
+def plan_refinement_apply(request: RefinementRequest):
+    """Make the offered plan the session's plan. It then goes through the same approval gate as any plan: a new
+    pending action when the policy makes it eligible, and the previous action stops working."""
+    from app.revision import _no_change
+    session = get_session(request.session_id)
+    with _approval_lock:  # never at the same moment as an approval of the plan it replaces
+        result = refinement.take(session, request.base_version) or _no_change(
+            "needs_clarification", "This suggestion is no longer available: your plan changed, or was saved.",
+            "stale_plan", session.get("plan_state"))
+        return _plan_response(request.session_id, session, result, traveller_id=session.get("traveller_id"),
+                              memory_notes=[], tool_calls=[], usage=None)
 
 
 @app.post("/api/whatif/options")

@@ -290,6 +290,8 @@ docker compose up --build      # the travel API on http://localhost:8103, replay
 | `TRAVEL_CONTACT` | empty | Your email or repo URL, sent in the User-Agent in live and record mode |
 | `TRAVEL_CACHE_DIR` | `services/cache` | Another cache folder |
 | `APP_URL` | `http://localhost:8000` | Your app, for the UI starter and the eval runner |
+| `RIHLA_FAST_PLANNING` | `on` | The trip form plans in seconds, without LLM calls ([docs/fast-planning.md](docs/fast-planning.md)) |
+| `RIHLA_AI_REVIEW` | `on` | The agents review a fast plan in the background and may offer a better one |
 
 ## Known limits of the data
 

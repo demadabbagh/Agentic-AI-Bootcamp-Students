@@ -563,7 +563,7 @@ class RevisionAgentReport(BaseModel):
 
 
 def run_targeted_revision(itinerary: Itinerary, bundle: ResearchBundle, budget_report: BudgetReport,
-                          llm: BaseLLM | str, *, verification: VerificationReport | None = None,
+                          llm: BaseLLM | str | None, *, verification: VerificationReport | None = None,
                           planner_report: PlannerReport | None = None, travel_lookup: TravelLookup | None = None,
                           hours_lookup: HoursLookup | None = None, rules: ScheduleRules | None = None,
                           max_attempts: int = MAX_ATTEMPTS, max_lookups: int = DEFAULT_MAX_LOOKUPS
@@ -577,7 +577,7 @@ def run_targeted_revision(itinerary: Itinerary, bundle: ResearchBundle, budget_r
     result = revise_itinerary(itinerary, bundle, budget_report, verification=verification,
                               planner_report=planner_report, travel_lookup=travel_lookup, hours_lookup=hours_lookup,
                               rules=rules, max_attempts=max_attempts, max_lookups=max_lookups,
-                              decide=make_decide(llm, bundle, budget_report, run))
+                              decide=make_decide(llm, bundle, budget_report, run) if llm is not None else None)
     return RevisionAgentReport(status=result.status, verified=result.verified, result=result,
                                decided_by=result.decided_by, llm_called=run.called, decision_points=run.points,
                                choice=run.choice, agent_tool_calls=run.tool_calls, agent_trace=run.trace,

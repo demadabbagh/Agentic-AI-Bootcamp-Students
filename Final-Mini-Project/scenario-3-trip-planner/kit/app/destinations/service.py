@@ -89,6 +89,9 @@ class DestinationError(Exception):
         return {"error": error}
 
 
+SPELLINGS = {"marrakech": "Marrakesh"}
+
+
 def _env_number(name: str, default: float, low: float, high: float) -> float:
     try:
         value = float(os.getenv(name, default))
@@ -320,13 +323,16 @@ class DestinationSearch:
         if len(query) < PROVIDER_MIN_LENGTH:  # never sent to the provider
             return self._answer(query, popular_matches(self._popular_places(), query, limit), False, "popular")
         count = min(PROVIDER_MAX_COUNT, limit * OVERFETCH)
-        key = (_fold(query), count, language)
+        # the usual spelling of a city the provider knows only under another: the answer is the provider's own place
+        name, comma, rest = query.partition(",")
+        lookup = SPELLINGS.get(_fold(name).strip(), name) + comma + rest
+        key = (_fold(lookup), count, language)
         now = self._clock()
         with self._lock:
             cached = self._cache.get(key, now)
         if cached is None:
             self._take_call_slot(now)
-            raw = self._fetch(query, count, language)
+            raw = self._fetch(lookup, count, language)
             seen, places = set(), []
             for item in raw:
                 place = normalize_result(item)

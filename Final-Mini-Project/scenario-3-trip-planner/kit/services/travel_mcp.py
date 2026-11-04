@@ -40,13 +40,25 @@ def api_url() -> str:
     return (os.getenv("TRAVEL_API_URL") or "http://localhost:8103").rstrip("/")
 
 
+# One client for the life of this server. Building an httpx client loads the certificate bundle: measured 430 ms, on
+# the event loop, so with a client per call every tool call paid it and concurrent calls queued behind each other (a
+# 95 ms lookup took about 2 s). All calls run on this server's one event loop, so a plain global is safe.
+_client: httpx.AsyncClient | None = None
+
+
+def client() -> httpx.AsyncClient:
+    global _client
+    if _client is None or str(_client.base_url).rstrip("/") != api_url():
+        _client = httpx.AsyncClient(base_url=api_url(), timeout=TRAVEL_API_TIMEOUT_S)
+    return _client
+
+
 async def call(method: str, path: str, params: dict | None = None, body: Any = None,
                headers: dict | None = None) -> dict:
     h = {"X-API-Key": os.getenv("TRAVEL_API_KEY") or "dev-key-change-me", **(headers or {})}
     params = {k: v for k, v in (params or {}).items() if v is not None}
     try:
-        async with httpx.AsyncClient(base_url=api_url(), timeout=TRAVEL_API_TIMEOUT_S) as client:
-            r = await client.request(method, path, params=params, json=body, headers=h)
+        r = await client().request(method, path, params=params, json=body, headers=h)
     except httpx.TimeoutException:
         return {"ok": False, "error": {"code": "timeout", "status": None,
                                        "message": f"The travel API did not answer in {TRAVEL_API_TIMEOUT_S:g} s."}}
@@ -130,6 +142,15 @@ async def travel_time(from_place: str, to_place: str, city: str, mode: str = "fo
     OSRM on OpenStreetMap data. Places can be listing names, other place names or 'lat,lon'. Use it to check
     that consecutive activities fit the schedule and the traveller's walking limit. Driving ignores traffic."""
     return await call("GET", "/api/route", {"from": from_place, "to": to_place, "city": city, "mode": mode})
+
+
+@mcp.tool()
+async def warm_routes(places: list[str], city: str, mode: str = "foot", ride_after_minutes: int | None = None) -> dict:
+    """Prepare travel_time for consecutive places of this list with one multi-stop routing request: later travel_time
+    calls between them answer at once, with the same router's times. With ride_after_minutes, the driving times of
+    the longer legs too. Read-only and optional: it changes no answer."""
+    return await call("POST", "/api/route/warm", body={"places": places, "city": city, "mode": mode,
+                                                       "ride_after_minutes": ride_after_minutes})
 
 
 @mcp.tool()

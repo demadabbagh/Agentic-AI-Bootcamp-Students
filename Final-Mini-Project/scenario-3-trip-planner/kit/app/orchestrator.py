@@ -1,6 +1,9 @@
+import os
 import time
 from copy import deepcopy
 
+from app import refinement
+from planning.budget_analyst import not_plannable, prepare_candidates
 from app.coordinator import understand_trip_request
 from app.memory import get_session, update_trip_details
 from app.mock_agents import research_trip, plan_trip, verify_trip
@@ -31,6 +34,17 @@ MAX_VERIFICATION_ATTEMPTS = 3
 
 # USD per million tokens, for an ESTIMATE from CrewAI's token counts (the provider's bill is the authority).
 MODEL_PRICES = {"openai/gpt-4.1-mini": (0.40, 1.60)}
+
+
+# The fast path's time budget, shared by its steps: a slow source costs a checked fact (it stays unknown and says so),
+# never the answer. What is left of the 10 seconds is for the network and the page.
+FAST_TOTAL_SECONDS = 7.0
+FAST_EVIDENCE_SECONDS = 3.0
+FAST_VERIFY_SECONDS = 1.0  # kept back from the planner, so the plan is always checked
+
+
+def fast_planning() -> bool:
+    return os.getenv("RIHLA_FAST_PLANNING", "on").strip().lower() not in {"0", "off", "false", "no"}
 
 
 def _form_details(form: dict) -> dict:
@@ -143,6 +157,14 @@ def verification_summary(verification_result: dict | None) -> dict | None:
     }
 
 
+def in_plan(budget: dict | None, itinerary: dict | None) -> dict | None:
+    """The budget was worked out before verification: a place the repair then removed is no longer a planned item."""
+    if not budget or not itinerary:
+        return budget
+    names = {a.get("name") for d in itinerary.get("days") or [] for a in d.get("activities") or []}
+    return {**budget, "unknown_price_items": [n for n in budget.get("unknown_price_items") or [] if n in names]}
+
+
 def budget_summary(budget_report) -> dict | None:
     """The Budget Analyst's money picture and interest coverage, in Python's numbers."""
     if budget_report is None:
@@ -232,6 +254,207 @@ def orchestrate_trip(
     if used:
         result["preferences_used"] = used
     return result
+
+
+def _plan_and_verify(trip_info: dict, research_bundle: ResearchBundle, evidence_notes: list[str], session: dict | None,
+                     timings: dict, llm, hours_lookup, travel_lookup, *, use_agents: bool = True,
+                     commit: bool = True, deadline: float | None = None) -> dict:
+    """Plan from the research, verify, and build the result. The one path every plan takes.
+
+    use_agents=False: Python's selection and day plan, no LLM; the verification is the same, with lookups bounded in
+    time, up to `deadline` (time.monotonic()). commit=False: the session is left as it is and the plan state is returned
+    as "_plan_state" (the AI review)."""
+    def left() -> float:
+        return max(0.0, deadline - time.monotonic()) if deadline is not None else FAST_VERIFY_SECONDS
+
+    planning_result = run_planning_pipeline(
+        research_bundle,
+        llm=llm,
+        travel_lookup=travel_lookup,
+        **({} if use_agents else {"use_agents": False, "lookup_seconds": max(0.0, left() - FAST_VERIFY_SECONDS)}),
+    )
+
+    print("3. Real Planning Pipeline finished")
+    timings["budget_analyst_ms"] = (planning_result.get("timings") or {}).get("budget_analyst_ms")
+    timings["planner_ms"] = (planning_result.get("timings") or {}).get("planner_ms")
+
+    budget_report = planning_result["budget_report"]
+    print("=== BUDGET DIAGNOSTICS ===")
+    print("Selected:", len(budget_report.selected))
+    print("Optional:", len(budget_report.optional))
+    print("Excluded:", len(budget_report.excluded))
+    print("Withheld:", len(budget_report.withheld))
+    print("Withheld reasons:", [(x.name, x.reason) for x in budget_report.withheld])
+    print("Budget warnings:", budget_report.warnings)
+    print("Budget guardrail rejections:", (budget_report.performance or {}).get("rejection_details"),
+          "| filled by Python:", (budget_report.performance or {}).get("filled_missing"),
+          "| promotions:", budget_report.promotions)
+    print("==========================")
+    print("\n".join(budget_decisions(budget_report)))
+    print("\n".join(performance_summary(
+        budget_report,
+        planning_result.get("planner_report"),
+        planning_result.get("timings"),
+    )))
+
+
+    planner_report = planning_result["planner_report"]
+
+    print("=== PLANNING DIAGNOSTICS ===")
+    print("Planner status:", planner_report.status)
+    print("Scheduled places:", len(planner_report.scheduled_place_ids))
+    print("Unscheduled places:", len(planner_report.unscheduled))
+    print("Warnings:", planner_report.warnings)
+    print("============================")
+
+    itinerary = planning_result["itinerary"]
+
+    if itinerary is None:
+        return {
+            "status": "needs_revision",
+            "message": (
+                "The Planning Agent could not produce "
+                "a complete itinerary."
+            ),
+        }
+
+    # A valid schedule can still be too thin for the trip's length:
+    # stop before verification rather than offer it for approval.
+    coverage = assess_coverage(
+        planning_result["itinerary_model"], research_bundle
+    )
+    print("\n".join(coverage_summary(coverage)))
+
+    if not coverage.sufficient:
+        return {
+            "status": "needs_revision",
+            "message": coverage.insufficient_message(),
+            "coverage": coverage.as_dict(),
+        }
+
+    if session is not None and commit:
+        session["coverage_context"] = coverage_context(research_bundle)
+
+    started = time.perf_counter()
+    verification_result = run_verification_pipeline(
+        itinerary=planning_result["itinerary_model"],
+        research_bundle=research_bundle,
+        llm=llm,
+        budget_report=planning_result["budget_report"],
+        planner_report=planning_result["planner_report"],
+        hours_lookup=hours_lookup,
+        travel_lookup=travel_lookup,
+        **({} if use_agents else {"lookup_seconds": max(0.5, left())}),
+    )
+
+    timings["verification_ms"] = round((time.perf_counter() - started) * 1000)
+    performance = _performance(timings, {
+        "budget_analyst": planning_result.get("budget_report"),
+        "planner": planning_result.get("planner_report"),
+        "verifier": verification_result.get("verifier_report"),
+        "revision": verification_result.get("revision_report"),
+    })
+    performance["planned_by"] = "agents" if use_agents else "python"
+    print("=== STAGE PERFORMANCE ===")
+    print(performance)
+    print("=========================")
+    final_model = verification_result.get("itinerary_model")
+    final_itinerary = (
+        final_model.to_trip_store()
+        if final_model is not None
+        else itinerary
+    )
+
+    # A revision during verification may have changed the plan.
+    if final_model is not None:
+        coverage = assess_coverage(final_model, research_bundle)
+
+        if not coverage.sufficient:
+            return {
+                "status": "needs_revision",
+                "message": coverage.insufficient_message(),
+                "coverage": coverage.as_dict(),
+            }
+
+    # Valid and covered is not the same as full: label a light plan
+    # and say why. Advice only; it never changes the status.
+    density = assess_density(
+        final_model or planning_result["itinerary_model"],
+        research_bundle,
+        planning_result["budget_report"],
+        planning_result.get("planner_report"),
+    )
+    print("\n".join(density_summary(density)))
+
+    notes = " ".join(filter(None, [coverage.warning(), density.message()])) or None
+    summary = traveller_summary(trip_info, planning_result["budget_report"],
+                                planning_result.get("planner_report"), final_model)
+    summary["limitations"] = list(summary.get("limitations") or []) + evidence_notes
+
+    # Session memory for later revisions: the whole plan, so a change needs no new research or plan.
+    plan_version = None
+    state = None
+    if session is not None:
+        repair = verification_result.get("revision_report")
+        kept_planner = (repair.result.planner_report
+                        if repair is not None and repair.result.planner_report is not None
+                        else planning_result["planner_report"])
+        try:
+            state = plan_state_from(research_bundle, planning_result["budget_report"], kept_planner,
+                                    final_model or planning_result["itinerary_model"])
+        except Exception as exc:  # the plan stands; only later revisions are unavailable (said when asked)
+            print("Plan not kept for revisions:", type(exc).__name__)
+            state = None
+            if commit:
+                session.pop("plan_state", None)
+        else:
+            if commit:
+                session["plan_state"] = state
+            plan_version = state.version
+    print("=== TRAVELLER SUMMARY ===")
+    print(summary)
+    print("=========================")
+
+    if verification_result.get("verified") is True:
+        return {
+            "status": "verified",
+            "message": _with_warning(
+                "The itinerary passed real verification "
+                "and is awaiting user approval.",
+                notes,
+            ),
+            "itinerary": final_itinerary,
+            "verification_result": verification_result,
+            "coverage": coverage.as_dict(),
+            "plan_quality": density.as_dict(),
+            "performance": performance,
+            "summary": summary,
+            "verification": verification_summary(verification_result),
+            "budget": budget_summary(planning_result["budget_report"]),
+            "plan_version": plan_version,
+            **({} if commit else {"_plan_state": state}),
+        }
+
+    return {
+        "status": "verification_required",
+        "message": _with_warning(
+            verification_result.get(
+                "message",
+                "The itinerary could not be fully verified.",
+            ),
+            notes,
+        ),
+        "itinerary": final_itinerary,
+        "verification_result": verification_result,
+        "coverage": coverage.as_dict(),
+        "plan_quality": density.as_dict(),
+        "performance": performance,
+        "summary": summary,
+        "verification": verification_summary(verification_result),
+        "budget": in_plan(budget_summary(planning_result["budget_report"]), final_itinerary),
+        "plan_version": plan_version,
+        **({} if commit else {"_plan_state": state}),
+    }
 
 
 def _orchestrate_trip(
@@ -434,195 +657,42 @@ def _orchestrate_trip(
         # Walks over the threshold (the traveller's, else RIHLA_MAX_WALK_MINUTES, 30) are measured by car too.
         walk_limit = research_bundle.trip.max_walk_minutes or max_walk_minutes()
         travel_lookup = create_travel_lookup(destination, mode="foot", ride_after_minutes=walk_limit)
-        llm = create_planning_llm()
+        # The trip form gets the fast path: an answer in seconds, then the agents' review in the background. Chat
+        # requests (the official contract and its evals) keep the agents in line.
+        fast = trip_form is not None and fast_planning()
+        llm = None if fast else create_planning_llm()
+        deadline = time.monotonic() - (time.perf_counter() - started) + FAST_TOTAL_SECONDS if fast else None
 
         # Plan from places whose hours, price and walking legs can be checked, when there are enough of them
         # (planning/evidence.py): nothing is filled in; what is set aside is said in the plan's limitations.
         started_evidence = time.perf_counter()
-        research_bundle, evidence_notes = checkable_bundle(research_bundle, travel_lookup)
+        with stage("evidence"):
+            research_bundle, evidence_notes = checkable_bundle(
+                research_bundle, travel_lookup,
+                **({"seconds": min(FAST_EVIDENCE_SECONDS, max(0.0, deadline - time.monotonic() - 2 * FAST_VERIFY_SECONDS))}
+                   if fast else {}))
         timings["evidence_ms"] = round((time.perf_counter() - started_evidence) * 1000)
         for note in evidence_notes:
             print("   evidence:", note)
 
-        planning_result = run_planning_pipeline(
-            research_bundle,
-            llm=llm,
-            travel_lookup=travel_lookup,
-        )
+        started_plan = time.perf_counter()
+        result = _plan_and_verify(trip_info, research_bundle, evidence_notes, session, timings, llm, hours_lookup,
+                                  travel_lookup, use_agents=not fast, deadline=deadline)
+        print(f"Plan answered in {round((time.perf_counter() - started_plan) * 1000)} ms after research")
+        # The agents review a fast plan in the background; what they find is an offer (app/refinement.py).
+        if fast and session is not None and result.get("plan_version") and refinement.enabled():
+            # the agents start from the same places: left to choose, they offered back a 1,479 USD meal and a monument
+            # 678 km away, the two listings the fast plan had set aside
+            left_out = not_plannable(prepare_candidates(research_bundle), research_bundle.places)
+            planned_from = research_bundle.model_copy(
+                update={"places": [p for p in research_bundle.places if p.place_id not in left_out]})
 
-        print("3. Real Planning Pipeline finished")
-        timings["budget_analyst_ms"] = (planning_result.get("timings") or {}).get("budget_analyst_ms")
-        timings["planner_ms"] = (planning_result.get("timings") or {}).get("planner_ms")
-
-        budget_report = planning_result["budget_report"]
-        print("=== BUDGET DIAGNOSTICS ===")
-        print("Selected:", len(budget_report.selected))
-        print("Optional:", len(budget_report.optional))
-        print("Excluded:", len(budget_report.excluded))
-        print("Withheld:", len(budget_report.withheld))
-        print("Withheld reasons:", [(x.name, x.reason) for x in budget_report.withheld])
-        print("Budget warnings:", budget_report.warnings)
-        print("Budget guardrail rejections:", (budget_report.performance or {}).get("rejection_details"),
-              "| filled by Python:", (budget_report.performance or {}).get("filled_missing"),
-              "| promotions:", budget_report.promotions)
-        print("==========================")
-        print("\n".join(budget_decisions(budget_report)))
-        print("\n".join(performance_summary(
-            budget_report,
-            planning_result.get("planner_report"),
-            planning_result.get("timings"),
-        )))
-
-
-        planner_report = planning_result["planner_report"]
-
-        print("=== PLANNING DIAGNOSTICS ===")
-        print("Planner status:", planner_report.status)
-        print("Scheduled places:", len(planner_report.scheduled_place_ids))
-        print("Unscheduled places:", len(planner_report.unscheduled))
-        print("Warnings:", planner_report.warnings)
-        print("============================")
-
-        itinerary = planning_result["itinerary"]
-
-        if itinerary is None:
-            return {
-                "status": "needs_revision",
-                "message": (
-                    "The Planning Agent could not produce "
-                    "a complete itinerary."
-                ),
-            }
-
-        # A valid schedule can still be too thin for the trip's length:
-        # stop before verification rather than offer it for approval.
-        coverage = assess_coverage(
-            planning_result["itinerary_model"], research_bundle
-        )
-        print("\n".join(coverage_summary(coverage)))
-
-        if not coverage.sufficient:
-            return {
-                "status": "needs_revision",
-                "message": coverage.insufficient_message(),
-                "coverage": coverage.as_dict(),
-            }
-
-        if session is not None:
-            session["coverage_context"] = coverage_context(research_bundle)
-
-        started = time.perf_counter()
-        verification_result = run_verification_pipeline(
-            itinerary=planning_result["itinerary_model"],
-            research_bundle=research_bundle,
-            llm=llm,
-            budget_report=planning_result["budget_report"],
-            planner_report=planning_result["planner_report"],
-            hours_lookup=hours_lookup,
-            travel_lookup=travel_lookup,
-        )
-
-        timings["verification_ms"] = round((time.perf_counter() - started) * 1000)
-        performance = _performance(timings, {
-            "budget_analyst": planning_result.get("budget_report"),
-            "planner": planning_result.get("planner_report"),
-            "verifier": verification_result.get("verifier_report"),
-            "revision": verification_result.get("revision_report"),
-        })
-        print("=== STAGE PERFORMANCE ===")
-        print(performance)
-        print("=========================")
-        final_model = verification_result.get("itinerary_model")
-        final_itinerary = (
-            final_model.to_trip_store()
-            if final_model is not None
-            else itinerary
-        )
-
-        # A revision during verification may have changed the plan.
-        if final_model is not None:
-            coverage = assess_coverage(final_model, research_bundle)
-
-            if not coverage.sufficient:
-                return {
-                    "status": "needs_revision",
-                    "message": coverage.insufficient_message(),
-                    "coverage": coverage.as_dict(),
-                }
-
-        # Valid and covered is not the same as full: label a light plan
-        # and say why. Advice only; it never changes the status.
-        density = assess_density(
-            final_model or planning_result["itinerary_model"],
-            research_bundle,
-            planning_result["budget_report"],
-            planning_result.get("planner_report"),
-        )
-        print("\n".join(density_summary(density)))
-
-        notes = " ".join(filter(None, [coverage.warning(), density.message()])) or None
-        summary = traveller_summary(trip_info, planning_result["budget_report"],
-                                    planning_result.get("planner_report"), final_model)
-        summary["limitations"] = list(summary.get("limitations") or []) + evidence_notes
-
-        # Session memory for later revisions: the whole plan, so a change needs no new research or plan.
-        plan_version = None
-        if session is not None:
-            repair = verification_result.get("revision_report")
-            kept_planner = (repair.result.planner_report
-                            if repair is not None and repair.result.planner_report is not None
-                            else planning_result["planner_report"])
-            try:
-                state = plan_state_from(research_bundle, planning_result["budget_report"], kept_planner,
-                                        final_model or planning_result["itinerary_model"])
-            except Exception as exc:  # the plan stands; only later revisions are unavailable (said when asked)
-                print("Plan not kept for revisions:", type(exc).__name__)
-                session.pop("plan_state", None)
-            else:
-                session["plan_state"] = state
-                plan_version = state.version
-        print("=== TRAVELLER SUMMARY ===")
-        print(summary)
-        print("=========================")
-
-        if verification_result.get("verified") is True:
-            return {
-                "status": "verified",
-                "message": _with_warning(
-                    "The itinerary passed real verification "
-                    "and is awaiting user approval.",
-                    notes,
-                ),
-                "itinerary": final_itinerary,
-                "verification_result": verification_result,
-                "coverage": coverage.as_dict(),
-                "plan_quality": density.as_dict(),
-                "performance": performance,
-                "summary": summary,
-                "verification": verification_summary(verification_result),
-                "budget": budget_summary(planning_result["budget_report"]),
-                "plan_version": plan_version,
-            }
-
-        return {
-            "status": "verification_required",
-            "message": _with_warning(
-                verification_result.get(
-                    "message",
-                    "The itinerary could not be fully verified.",
-                ),
-                notes,
-            ),
-            "itinerary": final_itinerary,
-            "verification_result": verification_result,
-            "coverage": coverage.as_dict(),
-            "plan_quality": density.as_dict(),
-            "performance": performance,
-            "summary": summary,
-            "verification": verification_summary(verification_result),
-            "budget": budget_summary(planning_result["budget_report"]),
-            "plan_version": plan_version,
-        }
+            def review(bundle=planned_from, notes=list(evidence_notes)) -> dict:
+                return _plan_and_verify(trip_info, bundle, notes, session, {}, create_planning_llm(), hours_lookup,
+                                        travel_lookup, commit=False)
+            result["refinement"] = refinement.start(session, base_version=result["plan_version"], base_result=result,
+                                                    review=review)
+        return result
 
        # STEP 9: Safety fallback
     # Never approve an itinerary through mock agents.

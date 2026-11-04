@@ -78,7 +78,7 @@ class ExchangeRate(BaseModel):
     to_currency: str
     rate: Decimal = Field(gt=0)
     rate_date: str | None = None
-    method: str | None = None  # ecb_reference_rate | fixed_peg_via_usd
+    method: str | None = None  # ecb_reference_rate | fixed_peg_via_usd | market_rate_via_usd
     source: str | None = None
     source_url: str | None = None
     citation_id: str | None = None
@@ -104,7 +104,8 @@ class ExchangeRate(BaseModel):
                    source_url=result.get("source_url"), citation_id=(result.get("citation") or {}).get("id"))
 
     def describe(self) -> str:
-        how = "Central Bank of Jordan peg via USD" if self.method == "fixed_peg_via_usd" else "ECB reference rate"
+        how = {"fixed_peg_via_usd": "Central Bank of Jordan peg via USD",
+               "market_rate_via_usd": self.source or "market rate"}.get(self.method, "ECB reference rate")
         return f"{self.from_currency}->{self.to_currency} {_fmt(self.rate)} ({how}{', ' + self.rate_date if self.rate_date else ''})"
 
 

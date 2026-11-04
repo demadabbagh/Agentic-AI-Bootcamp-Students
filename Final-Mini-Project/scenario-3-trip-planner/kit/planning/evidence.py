@@ -15,13 +15,14 @@ meal per day), nothing of that kind is set aside: the plan then shows what could
 """
 from __future__ import annotations
 
+import contextvars
 import datetime as dt
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Callable
 
-from .budget_analyst import prepare_candidates
+from .budget_analyst import meal_target, prepare_candidates
 from .plan_quality import target_range
 from .research import ResearchBundle, ResearchedPlace
 from .schedule import hours_on
@@ -52,9 +53,11 @@ def _measured(result) -> bool:
 
 
 class _Prober:
-    def __init__(self, lookup: Callable[[str, str], dict] | None):
+    def __init__(self, lookup: Callable[[str, str], dict] | None, seconds: float | None = None):
         self.lookup, self.calls, self.cache = lookup, 0, {}
-        self.deadline = time.monotonic() + TIME_BUDGET_S
+        self.timed = seconds is not None  # the fast path: batched, and no ride asked for just to see a leg can be measured
+        self.measure = getattr(lookup, "walk", lookup) if self.timed else lookup
+        self.deadline = time.monotonic() + (TIME_BUDGET_S if seconds is None else seconds)
         self._lock = threading.Lock()
 
     def remaining(self) -> float:
@@ -70,7 +73,7 @@ class _Prober:
                 return None
             self.calls += 1
         try:
-            ok = _measured(self.lookup(a.name, b.name))
+            ok = _measured(self.measure(a.name, b.name))
         except Exception:  # a failing tool is "not measured", never a guess
             ok = False
         with self._lock:
@@ -81,6 +84,10 @@ class _Prober:
 def _routable(places: list[ResearchedPlace], prober: _Prober) -> set[str] | None:
     """The places with at least one measured leg to a well-connected anchor; None when this cannot be told (no
     lookup, or no two candidate anchors connect at all)."""
+    warm = getattr(prober.lookup, "warm", None) if prober.timed else None
+    if warm is not None and len(places) > 1:  # hub, a, hub, b, ...: every probe below in one routing request
+        hub = places[0].name
+        warm([hub] + [stop for p in places[1:] for stop in (p.name, hub)], rides=False, seconds=prober.remaining())
     head = places[:SEED_SEARCH]  # the research's own order: its most relevant places first
     seed = next(((a, b) for i, a in enumerate(head) for b in head[i + 1:] if prober.leg(a, b)), None)
     if seed is None:
@@ -104,7 +111,8 @@ def _routable(places: list[ResearchedPlace], prober: _Prober) -> set[str] | None
 
     todo = [p for p in places if p.place_id not in ok]
     pool = ThreadPoolExecutor(max_workers=PARALLEL)
-    futures = {pool.submit(answer, p): p for p in todo}
+    # each worker carries this request's context, so its lookups are recorded with the request's
+    futures = {pool.submit(contextvars.copy_context().run, answer, p): p for p in todo}
     done, _ = wait(futures, timeout=prober.remaining())
     # A probe still running when the budget ends is not waited for: its place was not judged, so it stays.
     ok |= {p.place_id for f, p in futures.items() if f not in done or f.result()[1]}
@@ -112,8 +120,8 @@ def _routable(places: list[ResearchedPlace], prober: _Prober) -> set[str] | None
     return ok
 
 
-def checkable_bundle(bundle: ResearchBundle, travel_lookup: Callable[[str, str], dict] | None = None
-                     ) -> tuple[ResearchBundle, list[str]]:
+def checkable_bundle(bundle: ResearchBundle, travel_lookup: Callable[[str, str], dict] | None = None, *,
+                     seconds: float | None = None) -> tuple[ResearchBundle, list[str]]:
     """The bundle to plan from, and what was set aside and why (sentences for the plan's limitations)."""
     dates = _dates(bundle)
     cands = prepare_candidates(bundle)
@@ -129,7 +137,7 @@ def checkable_bundle(bundle: ResearchBundle, travel_lookup: Callable[[str, str],
         if why:
             gaps[p.place_id] = why
 
-    prober = _Prober(travel_lookup)
+    prober = _Prober(travel_lookup, seconds)
     by_kind = {k: [p for p in bundle.places if p.category == k] for k in ("attraction", "restaurant")}
     routable = _routable([p for p in by_kind["attraction"] + by_kind["restaurant"] if p.place_id not in gaps], prober)
     if routable is not None:
@@ -138,8 +146,10 @@ def checkable_bundle(bundle: ResearchBundle, travel_lookup: Callable[[str, str],
                 gaps[p.place_id] = ["no measurable walking route to the other places"]
 
     # Meals are optional in a plan (a meal that is not planned is said to be not included), so one checkable
-    # restaurant is enough to leave the unverifiable ones out.
-    need = {"attraction": target_range(len(dates), bundle.trip.activity_pace)[0] + MIN_SPARE, "restaurant": 1}
+    # restaurant is enough to leave the unverifiable ones out, unless food is what the traveller came for: then a
+    # meal a day is the trip, and a restaurant that cannot be checked stays in the plan, reported as unknown.
+    meals = meal_target(len(dates)) if "food" in bundle.trip.interests else 1
+    need = {"attraction": target_range(len(dates), bundle.trip.activity_pace)[0] + MIN_SPARE, "restaurant": meals}
     keep: set[str] = set()
     notes: list[str] = []
     for kind, places in by_kind.items():

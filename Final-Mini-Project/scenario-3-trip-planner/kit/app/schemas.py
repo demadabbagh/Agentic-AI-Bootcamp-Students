@@ -97,6 +97,7 @@ class ChatResponse(BaseModel):
     revision: dict[str, Any] | None = None  # app/revision.py: outcome, changes, unchanged dates, who chose
     memory_notes: list[str] = Field(default_factory=list)  # app/traveller_memory.py: saved preferences used, or why not
     whatif: dict[str, Any] | None = None  # app/whatif.py: the hypothetical scenario, its proposal and outcome
+    refinement: dict[str, Any] | None = None  # app/refinement.py: the agents' background review of a fast plan
     # app/approval_policy.acceptance: a plan that is not eligible for approval, which the traveller may still save as
     # their own acknowledged decision (POST /api/accept): its mode, status label, limitations and known costs
     pending_acceptance: dict[str, Any] | None = None
@@ -130,6 +131,15 @@ class WhatIfRequest(BaseModel):
 class WhatIfApplyRequest(BaseModel):
     session_id: str = Field(min_length=1)
     proposal_id: str = Field(min_length=1, max_length=40)
+
+
+class PrepareRequest(BaseModel):
+    destination: str = Field(min_length=2, max_length=100)
+
+
+class RefinementRequest(BaseModel):
+    session_id: str = Field(min_length=1)
+    base_version: str | None = Field(default=None, max_length=40)  # the plan_version on screen
 
 
 class SessionRequest(BaseModel):

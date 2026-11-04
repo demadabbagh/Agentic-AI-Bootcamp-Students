@@ -8,6 +8,7 @@ import { ACCEPTANCE_LABELS, acceptanceOptions, approvalOptions, sendAcceptance }
 import { AuthRequiredError } from '../auth/authApi'
 import { useAuth } from '../auth/authContext'
 import { applyRevision, revisionBlockedReason } from '../services/tripRevision'
+import RefinementPanel from './RefinementPanel'
 import WhatIfPanel from './WhatIfPanel'
 import { TravelInfoBoundary, TripTravelInfo } from '../features/trip-travel'
 import { sourceLinks } from '../services/citations'
@@ -338,6 +339,20 @@ export default function TripDashboard() {
     showRevised(next.result)
     setMessages((previous) => [...previous, {
       role: 'assistant', text: `Applied the WHAT IF: ${info?.title || 'a hypothetical change'} ${next.reply}`,
+      changes: next.changes, moreChanges: next.moreChanges, outcome: 'revised',
+    }])
+  }
+
+  // The AI review's refined plan (RefinementPanel): the traveller chose it, and it is a new version of the plan.
+  const onReviewApplied = (response) => {
+    const next = applyRevision(aiResult, response)
+    if (!next.result) {
+      setMessages((previous) => [...previous, { role: 'assistant', text: next.reply, outcome: next.outcome }])
+      return
+    }
+    showRevised(next.result)
+    setMessages((previous) => [...previous, {
+      role: 'assistant', text: `Applied the AI review's refined plan. ${next.reply}`,
       changes: next.changes, moreChanges: next.moreChanges, outcome: 'revised',
     }])
   }
@@ -927,6 +942,12 @@ export default function TripDashboard() {
                 <p className="px-4 pb-4 text-xs leading-5 text-[#91a3ab]">{revisionBlocked}</p>
               )}
             </section>
+
+            {isReal && !isSample && aiResult.refinement && !approval && !rejected && (
+              <RefinementPanel key={`review-${aiResult.plan_version}`} sessionId={tripId}
+                planVersion={aiResult.plan_version} initial={aiResult.refinement}
+                onApplied={onReviewApplied} onSessionExpired={sessionExpired} />
+            )}
 
             {isReal && !isSample && (
               <WhatIfPanel key={aiResult.plan_version || 'no-plan'} aiResult={aiResult} sessionId={tripId}

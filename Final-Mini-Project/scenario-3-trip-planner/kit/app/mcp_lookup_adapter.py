@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import contextvars
 import os
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable
 
+from researcher import perf
 from researcher.mcp_client import call_read_tool
 
 
@@ -34,6 +37,7 @@ def call_lookup(name: str, arguments: dict[str, Any], *, sleep=time.sleep) -> di
                 raise MCPLookupError(
                     f"MCP lookup '{name}' could not be completed."
                 ) from exc
+            perf.count("lookup_retries")
             sleep(RETRY_DELAYS[attempt])
             continue
 
@@ -51,6 +55,7 @@ def call_lookup(name: str, arguments: dict[str, Any], *, sleep=time.sleep) -> di
                 f"MCP lookup '{name}' did not return successful evidence"
                 + (f" ({code})." if code else ".")
             )
+        perf.count("lookup_retries")
         sleep(RETRY_DELAYS[attempt])
 
     raise MCPLookupError(f"MCP lookup '{name}' could not be completed.")
@@ -70,6 +75,7 @@ class _RequestMemo:
     def get(self, key: tuple, ask: Callable[[], dict]) -> dict:
         with self._lock:
             if key in self._answers:
+                perf.count("lookup_cache_hits")
                 return dict(self._answers[key])
         result = ask()
         with self._lock:
@@ -91,6 +97,68 @@ def create_hours_lookup(city: str) -> Callable[[str], dict]:
         ))
 
     return hours_lookup
+
+
+PREPARE_TTL_S = 600.0  # the store keeps a city's listings this long (services/travel_data.LISTINGS_TTL_S)
+MAX_PREPARING = 4  # cities being fetched or queued: a burst of clicks must not become a burst on the public sources
+_PREPARE_POOL = ThreadPoolExecutor(max_workers=2, thread_name_prefix="rihla-prepare")
+_prepare_lock = threading.Lock()
+_prepared: dict[str, float] = {}
+_preparing = 0
+
+
+def prepare_city(city: str) -> str:
+    """Start reading a city's guide as soon as the traveller picks it, while the form is still being filled in: reading
+    a city for the first time takes 4 to 10 seconds of a plan. Read-only, and nothing depends on it: the plan reads the
+    same listings itself, waiting for this read if it is still running. "started", "ready" or "busy"."""
+    global _preparing
+    key = city.strip().casefold()
+    now = time.monotonic()
+    with _prepare_lock:
+        if now - _prepared.get(key, -PREPARE_TTL_S) < PREPARE_TTL_S:
+            return "ready"
+        if _preparing >= MAX_PREPARING:
+            return "busy"
+        _preparing += 1
+        if len(_prepared) > 500:
+            _prepared.clear()
+        _prepared[key] = now
+
+    def read() -> None:
+        global _preparing
+        try:
+            call_read_tool("find_attractions", {"city": city, "limit": 1})
+        except Exception:  # noqa: BLE001 - the plan asks again, and reports what it gets
+            with _prepare_lock:
+                _prepared.pop(key, None)
+        finally:
+            with _prepare_lock:
+                _preparing -= 1
+
+    _PREPARE_POOL.submit(read)
+    return "started"
+
+
+WARM_SECONDS = 3.0  # how long a plan waits for a batched routing request: a slow answer still fills the cache
+
+
+def warm_routes(city: str, stops: list[str], mode: str = "foot", ride_after_minutes: int | None = None, *,
+                seconds: float = WARM_SECONDS) -> None:
+    """Ask for the legs between consecutive stops in one request (services/travel_data.warm_routes), so the lookups
+    that follow answer at once. An optimisation only: a failure costs time, never a fact."""
+    if len(stops) < 2:
+        return
+
+    def ask() -> None:
+        try:
+            call_read_tool("warm_routes", {"places": stops, "city": city, "mode": mode,
+                                           "ride_after_minutes": ride_after_minutes})
+        except Exception:  # noqa: BLE001 - the lookups that follow ask one by one, as they always did
+            perf.count("warm_routes_failed")
+
+    worker = threading.Thread(target=contextvars.copy_context().run, args=(ask,), daemon=True)
+    worker.start()
+    worker.join(seconds)
 
 
 DEFAULT_MAX_WALK_MINUTES = 30
@@ -149,4 +217,8 @@ def create_travel_lookup(
         return {**ride, "profile": "driving", "walk_duration_min": walk,
                 "walk_distance_m": result.get("distance_m"), "walk_citation": result.get("citation")}
 
+    # planning/evidence.py and the planner send the stops they are about to ask about, in order, as one request
+    travel_lookup.warm = lambda stops, rides=True, seconds=WARM_SECONDS: warm_routes(
+        city, stops, mode, ride_after_minutes if rides else None, seconds=seconds)
+    travel_lookup.walk = lambda from_place, to_place: ask(from_place, to_place, mode)  # the leg alone, no ride
     return travel_lookup

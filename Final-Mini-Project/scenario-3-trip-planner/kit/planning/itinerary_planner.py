@@ -81,12 +81,13 @@ class PlanningContext:
     The guardrail, the check_day tool and build_itinerary() share the cache, so they see the same legs."""
 
     def __init__(self, report: BudgetReport, bundle: ResearchBundle, travel_lookup: TravelLookup | None = None, *,
-                 rules: ScheduleRules | None = None, max_lookups: int = DEFAULT_MAX_LOOKUPS):
+                 rules: ScheduleRules | None = None, max_lookups: int = DEFAULT_MAX_LOOKUPS,
+                 lookup_seconds: float | None = None):
         self.report, self.trip = report, bundle.trip
         self.dates = trip_dates(bundle.trip)
         self.rules = rules or ScheduleRules.from_trip(bundle.trip)
         self.max_lookups = max_lookups
-        self.travel = TravelTimes(travel_lookup, max_lookups=max_lookups)
+        self.travel = TravelTimes(travel_lookup, max_lookups=max_lookups, seconds=lookup_seconds)
         self.repairs: list[str] = []  # deterministic repairs the guardrail applied (always reported)
         self.accepted: DayAssignment | None = None  # the assignment the guardrail accepted, exactly as accepted
         self.rejections: list[dict] = []  # per rejected answer: problem kinds and counts, for diagnosis
@@ -1032,9 +1033,10 @@ def plan_summary(itinerary: Itinerary | None, ctx: PlanningContext, unscheduled:
     return lines
 
 
-def plan_itinerary(report: BudgetReport, bundle: ResearchBundle, llm: BaseLLM | str,
+def plan_itinerary(report: BudgetReport, bundle: ResearchBundle, llm: BaseLLM | str | None,
                    travel_lookup: TravelLookup | None = None, *, rules: ScheduleRules | None = None,
-                   max_lookups: int = DEFAULT_MAX_LOOKUPS, fallback: bool = True) -> PlannerReport:
+                   max_lookups: int = DEFAULT_MAX_LOOKUPS, fallback: bool = True,
+                   lookup_seconds: float | None = None) -> PlannerReport:
     """The whole step: context (Python) -> day assignment (CrewAI agent) -> schedule and report (Python).
 
     `llm` is the crew's shared LLM; `travel_lookup` wraps the travel_time MCP tool (city and mode bound), both
@@ -1042,12 +1044,20 @@ def plan_itinerary(report: BudgetReport, bundle: ResearchBundle, llm: BaseLLM | 
     agent gives no valid assignment.
     """
     from .day_balance import propose
-    ctx = PlanningContext(report, bundle, travel_lookup, rules=rules, max_lookups=max_lookups)
+    ctx = PlanningContext(report, bundle, travel_lookup, rules=rules, max_lookups=max_lookups,
+                          lookup_seconds=lookup_seconds)
     if not ctx.stops:
         return build_itinerary(ctx, DayAssignment(days=[DayChoice(date=d) for d in ctx.dates]))
     started = time.perf_counter()
     ctx.proposal = propose(ctx)
     ctx.repair_ms += round((time.perf_counter() - started) * 1000)
+    warm = getattr(travel_lookup, "warm", None) if lookup_seconds is not None else None
+    if warm is not None:  # the fast path: the proposal's stops, in order, their legs in one routing request
+        warm([ctx.stops[i].name for d in ctx.proposal.days for i in d.place_ids if i in ctx.stops],
+             seconds=lookup_seconds / 2)
+    if llm is None:  # the fast path: Python's own plan, the one shown to the agent as its starting point
+        ctx.decided_by = "python"
+        return build_itinerary(ctx, ctx.proposal, run=PlannerRun(assignment=ctx.proposal), refine=True)
     try:
         run = decide_with_crew(ctx, llm)
     except ItineraryPlannerError as exc:

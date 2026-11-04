@@ -78,6 +78,22 @@ def session():
 
 
 # ------------------------------------------------------------------ budget
+def test_two_requests_in_one_sentence_are_both_understood():
+    out = interpret("Make day 2 less crowded and add more historical attractions.", plan_state())
+    assert [o.kind for o in out.ops] == ["lighten_day", "add"]
+    assert out.ops[1].tag == "history" and out.ops[1].avoid_dates == [out.ops[0].date]
+    assert len(out.understood) == 2  # the reply says both, so nothing is dropped without a word
+
+
+def test_more_relaxed_is_not_a_request_to_add_anything():
+    assert [o.kind for o in interpret("Make day 2 more relaxed", plan_state()).ops] == ["lighten_day"]
+
+
+def test_an_unclear_second_request_is_asked_about_not_dropped():
+    out = interpret("Make day 2 less crowded and add something nice", plan_state())
+    assert out.clarification and not out.ops
+
+
 def test_reduce_a_700_budget_by_20_percent_to_a_560_target_keeping_every_day(session):
     before = copy.deepcopy(session["itinerary"])
     out = revise(session, "Reduce my budget by 20%.")

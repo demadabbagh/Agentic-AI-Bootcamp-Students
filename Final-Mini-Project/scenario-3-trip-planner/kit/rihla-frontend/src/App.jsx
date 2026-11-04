@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
-import { createTrip, LONG_TRIP_DAYS, tripDays } from './services/tripApi'
+import { createTrip, prepareDestination } from './services/tripApi'
 import { validateTripResult } from './services/tripResult'
 import { validateTripForm } from './services/tripForm'
 import { useAuth } from './auth/authContext'
@@ -30,6 +30,11 @@ export default function App() {
   // The cities chosen from the suggestions (coordinates, country): for the trip page's weather and flights only,
   // never sent to the planner. null when the text was typed without choosing, or changed after choosing.
   const [destinationPlace, setDestinationPlace] = useState(null)
+
+  // A chosen city: its guide is read while the rest of the form is filled in.
+  useEffect(() => {
+    if (destinationPlace?.label) prepareDestination(destinationPlace.label)
+  }, [destinationPlace])
   const [originPlace, setOriginPlace] = useState(null)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -436,9 +441,7 @@ export default function App() {
                 {isLoading && (
                   <p role="status" className="text-center text-xs text-white/80">
                     Researching places, pricing them, building and checking the day plan.{' '}
-                    {tripDays({ departureDate: startDate, returnDate: endDate }) > LONG_TRIP_DAYS
-                      ? `A ${tripDays({ departureDate: startDate, returnDate: endDate })}-day trip has more to plan and check: this can take several minutes`
-                      : 'This usually takes one to two minutes'}; please keep this page open.
+                    This usually takes a few seconds; please keep this page open.
                   </p>
                 )}
 

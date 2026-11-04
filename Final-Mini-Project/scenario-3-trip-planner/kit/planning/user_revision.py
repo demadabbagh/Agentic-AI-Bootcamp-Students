@@ -83,6 +83,7 @@ class RevisionOp(BaseModel):
     place_id: str | None = None
     date: dt.date | None = None
     to_date: dt.date | None = None
+    avoid_dates: list[dt.date] = Field(default_factory=list)  # add: days just made lighter stay lighter
     tag: str | None = None  # an interest tag (add, replace with, prefer)
     from_tag: str | None = None  # prefer A instead of B: B
     amount: Decimal | None = None  # set_budget: the new total
@@ -336,6 +337,10 @@ def interpret(request: str, st: PlanState) -> Interpretation:
     remove = re.search(r"\b(?:remove|delete|drop|skip|cancel|take out|get rid of|don'?t want(?: to visit)?)\s+(.+)", text)
     move = re.search(r"\bmove\s+(.+?)\s+to\s+(.+)", text)
     add = re.search(r"\b(?:add|include|more|extra)\b\s*(.*)", text)
+    # "Make Day 3 less crowded and add more historical attractions": two requests in one. Only an explicit verb counts
+    # here ("more relaxed" is not a request to add). The second half must not be dropped without a word.
+    lighter = [o.date for o in ops if o.kind == "lighten_day"]
+    add_too = re.search(r"\b(?:add|include)\b\s*(.*)", text) if lighter else None
     if prefer:
         to_tag, from_tag = _tag_of(prefer.group(1)), _tag_of(prefer.group(2))
         if not to_tag or not from_tag:
@@ -381,6 +386,12 @@ def interpret(request: str, st: PlanState) -> Interpretation:
                                                 "activities\" or \"Add more food experiences\".")
         ops.append(RevisionOp(kind="add", tag=tag, date=days[0] if days else None,
                               note=f"more {_label(tag)}" + (f" on {_day_label(st, days[0])}" if days else "")))
+    elif add_too:
+        tag = _tag_of(add_too.group(1))
+        if tag is None:
+            return Interpretation(clarification="What would you like more of? For example \"Add more nature "
+                                                "activities\" or \"Add more food experiences\".")
+        ops.append(RevisionOp(kind="add", tag=tag, avoid_dates=lighter, note=f"more {_label(tag)} on the other days"))
 
     if not ops:
         n_days = len(_dates(st))
@@ -656,7 +667,7 @@ def _op_add(e: _Edit, op: RevisionOp) -> None:
         ctx = e.ctx(pool)
         p = e.planner(ctx)
         options = []
-        for day in [op.date] if op.date else list(e.days):
+        for day in [op.date] if op.date else [d for d in e.days if d not in op.avoid_dates]:
             meal = any(ctx.stops[c].category == "restaurant" for c in pool)
             if not meal and len(p.sights(e.days[day])) >= p.hard_max(day):
                 continue

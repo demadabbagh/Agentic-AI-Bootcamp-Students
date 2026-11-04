@@ -63,6 +63,18 @@ const REVISION = {
 export const TRIP_REQUEST_TIMEOUT_MS = 5 * 60 * 1000
 // Longer trips take longer (more places to research, plan and verify): the limit grows with the trip's days.
 export const LONG_TRIP_DAYS = 7
+
+// The traveller picked a destination: the backend starts reading its guide while the form is filled in. Only a head
+// start: the answer is not used and a failure changes nothing, so it never reaches the page.
+export function prepareDestination(destination, fetchImpl = globalThis.fetch) {
+  return Promise.resolve()
+    .then(() => fetchImpl('/api/plan/prepare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ destination: String(destination || '').slice(0, 100) }),
+    }))
+    .then(() => undefined, () => undefined)
+}
 const EXTRA_MS_PER_DAY = 20 * 1000
 const MAX_TRIP_REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 

@@ -53,6 +53,7 @@ MIN_INTERVAL = {"nominatim.openstreetmap.org": 1.1, "routing.openstreetmap.de": 
 MEM_TTL_S = 3 * 3600
 MAX_DISTRICTS = 24  # district pages per city (Paris has 21); each is one rate-limited, cached request
 MAX_DISTRICT_DEPTH = 2  # districts of districts, for hierarchical cities
+MAX_PAGES_PER_QUERY = 50  # the most titles MediaWiki takes in one query
 DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 
@@ -411,6 +412,11 @@ def wv_page_url(title: str, anchor: str = "") -> str:
     return url + ("#" + quote(anchor.replace(" ", "_"), safe="_") if anchor else "")
 
 
+# What a guide says of its own great sights. Not a rating: the listing's own words, for the sights it singles out.
+LANDMARK_RE = re.compile(r"\b(?:landmarks?|iconic|most famous|best[- ]known|must[- ]see|grandest|symbol of|"
+                         r"world heritage|unesco|largest in (?:the )?(?:world|europe|asia|africa))\b")
+
+
 def tags_for(text: str, kind: str, name: str | None = None) -> list[str]:
     """Interest tags from a listing's own text. With `name`: a place that is not a "buy" listing is shopping only
     when its name says so (a market, a passage, a mall), never because its description mentions a market."""
@@ -419,8 +425,14 @@ def tags_for(text: str, kind: str, name: str | None = None) -> list[str]:
     if name is not None and kind != "buy" and "markets" in tags and not (
             re.search(TAG_RULES["markets"], fold(name)) or SHOP_NAME_RE.search(fold(name))):
         tags.remove("markets")
-    if _THEATRE.search(low) and not _ANCIENT_THEATRE.search(low) and "entertainment" not in tags:
-        tags.append("entertainment")
+    if kind == "see" and LANDMARK_RE.search(low) and "history" not in tags:
+        tags.append("history")  # what a guide calls the city's landmark is its history and culture, whatever else it is
+    if _THEATRE.search(low) and not _ANCIENT_THEATRE.search(low):
+        if "entertainment" not in tags:
+            tags.append("entertainment")
+        # a cinema or a stage is not history: the rule's "theatre" is there for the Roman one
+        if "history" in tags and not re.search(TAG_RULES["history"].replace("theat(er|re)|", ""), low):
+            tags.remove("history")
     if kind in ("eat", "drink"):
         tags = [t for t in tags if t in ("views", "family")] + ["food"]
     if kind == "buy" and "markets" not in tags:
@@ -535,6 +547,34 @@ def page_record(title: str, wikitext: str, retrieved_at: str, revid=None, reques
     }
 
 
+def wv_pages_prefetch(titles: list[str]) -> None:
+    """Live mode: many pages in ONE request, kept where wv_page() looks first. A page takes a polite half second and
+    more on its own, so a city with 20 district pages took over ten seconds before its first plan. The revisions are
+    the same wikitext wv_page() gets. Anything missing from the answer is simply fetched by wv_page(), as before."""
+    wanted = [t for t in dict.fromkeys(titles) if ("wikivoyage", slug(t)) not in _MEM][:MAX_PAGES_PER_QUERY]
+    if mode() != "live" or len(wanted) < 2:
+        return
+    try:
+        r, _ = http_get(WV_API, {"action": "query", "prop": "revisions", "rvprop": "ids|content", "rvslots": "main",
+                                 "titles": "|".join(wanted), "redirects": 1, "format": "json", "formatversion": 2})
+        r.raise_for_status()
+        query = r.json().get("query") or {}
+    except Exception:  # noqa: BLE001 - only an optimisation: wv_page() asks for each page and reports its own failure
+        return
+    renamed = {x["from"]: x["to"] for x in (query.get("normalized") or []) + (query.get("redirects") or [])}
+    pages = {p["title"]: p for p in query.get("pages") or [] if p.get("revisions")}
+    now = time.time()
+    for title in wanted:
+        final = title
+        for _ in range(4):  # a title can be normalised, then redirected
+            final = renamed.get(final, final)
+        p = pages.get(final)
+        if p:
+            rev = p["revisions"][0]
+            _MEM[("wikivoyage", slug(title))] = (now, page_record(p["title"], rev["slots"]["main"]["content"], now_iso(),
+                                                                  rev.get("revid"), requested=title))
+
+
 def wv_page(title: str) -> tuple[dict, str]:
     def fetch() -> dict:
         r, _ = http_get(WV_API, {"action": "parse", "page": title, "prop": "wikitext|revid", "format": "json",
@@ -596,6 +636,9 @@ def km_between(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 6371.0 * 2 * math.asin(math.sqrt(min(1.0, a)))
 
 
+CITY_SPELLINGS = {"marrakech": "Marrakesh"}  # the usual spelling, where the geocoder knows only another one
+
+
 def locate_city(city: str) -> dict:
     """Where the named city is: the Open-Meteo (GeoNames) place called `name` whose region and country are the
     ones given, compared as whole names. A destination box label comes from that same provider, so its region and
@@ -603,6 +646,7 @@ def locate_city(city: str) -> dict:
     of that name in the country given is used, only when there is exactly one. {"lat", "lon", "name", "region",
     "country"}; DataError 404 when the region and country given do not single out one place of that name."""
     name, qualifiers = split_city(city)
+    name = CITY_SPELLINGS.get(fold(name), name)
     wanted = {fold(q) for q in qualifiers}
     r, url = http_get(GEOCODING, {"name": name, "count": 30, "language": "en", "format": "json"})
     r.raise_for_status()
@@ -673,6 +717,7 @@ def _district_pages(page: dict) -> list[dict]:
         if fold(title) in seen:
             continue
         seen.add(fold(title))
+        wv_pages_prefetch([title] + [t for t, _ in queue if fold(t) not in seen])
         try:
             district = wv_page(title)[0]
         except DataError as exc:
@@ -714,9 +759,37 @@ def _city_copy_of(item: dict, kept: list[dict]) -> bool:
     return False
 
 
+LISTINGS_TTL_S = 600  # the listings below are rebuilt at most this often: pages themselves are cached for 3 h
+_listings_memo: dict[tuple[str, str], tuple[float, list[dict], dict]] = {}
+_listings_building: dict[tuple[str, str], threading.Lock] = {}
+
+
 def city_listings(city: str) -> tuple[list[dict], dict]:
+    """The city's listings, built once and reused. Every lookup needs them (a place name is resolved against them),
+    and building them reads every page and runs the tag rules on every listing: about 90 ms per lookup, for the same
+    answer. A plan asks for attractions and restaurants at once: the second waits for the first, instead of fetching
+    and parsing the whole city a second time. Each caller gets its own copies, so nothing it does reaches the memo."""
+    key = (mode(), slug(city))
+
+    def fresh() -> tuple[float, list[dict], dict] | None:
+        hit = _listings_memo.get(key)
+        return hit if hit is not None and time.time() - hit[0] <= LISTINGS_TTL_S else None
+
+    hit = fresh()
+    if hit is None:
+        with _listings_building.setdefault(key, threading.Lock()):
+            hit = fresh()
+            if hit is None:
+                listings, meta = _build_city_listings(city)
+                hit = _listings_memo[key] = (time.time(), listings, meta)
+    return [dict(item) for item in hit[1]], dict(hit[2])
+
+
+def _build_city_listings(city: str) -> tuple[list[dict], dict]:
     """Listings of a city page plus its district pages (districts first, in the page's own order)."""
     title = city_title(city)
+    qualifiers = split_city(city)[1]
+    country = fold(qualifiers[-1]) if qualifiers else None  # "Paris, France": read prices the way France writes them
     page, m = wv_page(title)
     pages = _district_pages(page)
     pages.append(page)
@@ -739,7 +812,7 @@ def city_listings(city: str) -> tuple[list[dict], dict]:
             # Tags are derived again from the listing's own text, so recorded pages use the current rules too.
             tags = tags_for(f"{item['name']} {item.get('alt') or ''} {item.get('description') or ''}", item["kind"],
                             f"{item['name']} {item.get('alt') or ''}")
-            listings.append(dict(item, id=uid, city=page["title"], tags=tags))
+            listings.append(dict(item, id=uid, city=page["title"], tags=tags, country=country))
     meta = {"city": page["title"], "mode": m, "retrieved_at": page["retrieved_at"],
             "pages": [p["source_url"] for p in pages], "source": "Wikivoyage", "licence": WV_LICENCE}
     return listings, meta
@@ -763,6 +836,14 @@ def _hhmm(h: str, m: str | None, ampm: str | None) -> str:
     if ampm == "am" and hour == 12:
         hour = 0
     return f"{hour:02d}:{int(m or 0):02d}"
+
+
+def _time_range(a: str, b: str | None, c: str | None, d: str, e: str | None, f: str | None) -> str:
+    """"6-11PM" is 18:00-23:00, "1-4PM" 13:00-16:00: the end's PM carries to a start that fits before it. "9-5pm" and
+    "11-2pm" start in the morning: 21:00 would be after their end."""
+    if not c and (f or "").replace(".", "").lower() == "pm" and int(a) < 12 and int(d) < 12 and int(a) <= int(d):
+        c = f
+    return f"{_hhmm(a, b, c)}-{_hhmm(d, e, f)}"
 
 
 def _day_index(token: str) -> int | None:
@@ -800,10 +881,13 @@ def parse_hours(raw: str | None) -> dict | None:
     if not raw:
         return None
     text = raw.replace("–", "-").replace("—", "-")
+    text = re.sub(r"\b(?:noon|midday)\b", "12:00", text, flags=re.I)
+    text = re.sub(r"\bmidnight\b", "24:00", text, flags=re.I)
     low = text.lower()
     out = {"raw": raw, "parsed": False, "days_stated": False, "open_days": [], "closed_days": [],
            "weekly": {}, "seasonal": [], "open_24h": False, "temporarily_closed": False}
-    if re.search(r"temporar\w* closed|closed for (restoration|renovation)|currently closed", low):
+    if re.search(r"temporar\w* closed|closed for (restoration|renovation)|currently closed", low) or (
+            re.search(r"(?:not open|closed) to (?:the )?(?:public|visitors)", low) and not re.search(r"\d", low)):
         out.update(parsed=True, temporarily_closed=True, closed_days=DAYS[:], note="The listing says it is closed.")
         return out
     if re.search(r"24 ?hours|24/7|open all day", low):
@@ -825,7 +909,7 @@ def parse_hours(raw: str | None) -> dict | None:
         month = re.match(rf"\s*(({MONTHS})\w*\s*-\s*({MONTHS})\w*)", seg_low)
         if month and times:
             out["seasonal"].append({"months": month.group(1).title(),
-                                    "hours": [f"{_hhmm(a, b, c)}-{_hhmm(d, e, f)}" for a, b, c, d, e, f in times]})
+                                    "hours": [_time_range(*t) for t in times]})
             continue
         strip = lambda s: re.sub(r"(closed|except)\b.*|\b(off)\b.*", "", s.lower())  # noqa: E731
         if not found:
@@ -851,7 +935,7 @@ def parse_hours(raw: str | None) -> dict | None:
             days = prev_days or set(range(7))
         prev_days = days
         for a, b, c, d, e, f in times:
-            rng = f"{_hhmm(a, b, c)}-{_hhmm(d, e, f)}"
+            rng = _time_range(a, b, c, d, e, f)
             for day in days:
                 weekly.setdefault(day, [])
                 if rng not in weekly[day]:
@@ -879,27 +963,46 @@ def parse_hours(raw: str | None) -> dict | None:
     return out
 
 
-CURRENCY_TOKENS = [("EUR", r"€|eur(?:os?)?\b"), ("USD", r"us\$|usd\b|\$|dollars?\b"),
+# "$" alone is a US dollar here: R$, A$, C$, HK$ and the like are other currencies, a letter before it says so.
+CURRENCY_TOKENS = [("EUR", r"€|eur(?:os?)?\b"), ("USD", r"us\$|usd\b|(?<![a-z])\$|dollars?\b"),
                    ("TRY", r"₺|\btl\b|\btry\b|lira\b|tl(?=\W|$)"), ("JOD", r"\bjod\b|\bjd\b|dinars?\b"),
-                   ("GBP", r"£|gbp\b")]
-NUM = r"(\d{1,3}(?:[,.]\d{3})+|\d+(?:\.\d+)?)"
+                   ("GBP", r"(?<![a-z])£|gbp\b"), ("ILS", r"₪|\bnis\b|\bils\b|shekels?\b"),
+                   ("BRL", r"r\$|(?<![a-z])brl(?![a-z])|\breais\b"), ("KRW", r"₩|(?<![a-z])krw(?![a-z])|\bwon\b|원"),
+                   ("HUF", r"(?<![a-z])ft(?![a-z])|(?<![a-z])huf(?![a-z])|forints?\b"),
+                   ("EGP", r"e£|£e|(?<![a-z])egp(?![a-z])|egyptian pounds?|جنيه|ج\.م\.?"),
+                   ("MAD", r"(?<![a-z])mad(?![a-z])"), ("AED", r"(?<![a-z])aed(?![a-z])")]
+# Words that mean a currency only in some countries: "dirham" is Moroccan or Emirati, "LE" is French for "the" elsewhere.
+# Without the country these stay unread: an unknown price, never a guess.
+LOCAL_CURRENCY_TOKENS = {
+    "egypt": [("EGP", r"(?<![a-z])l\.?e\.?(?![a-z])|pounds?\b")],
+    "morocco": [("MAD", r"dirhams?\b|(?<![a-z])dhs?(?![a-z])|درهم|د\.م\.?")],
+    "united arab emirates": [("AED", r"dirhams?\b|(?<![a-z])dhs?(?![a-z])|درهم|د\.إ\.?")],
+}
+ARABIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹٬٫", "01234567890123456789,.")
+# Thousands by comma, dot or space (Ft1 200, R$1.200,50); a decimal comma has one or two digits (R$12,50).
+NUM = r"(\d{1,3}(?:[,. ]\d{3})+(?:[.,]\d{1,2}(?!\d))?(?!\d)|\d+(?:\.\d+|,\d{1,2}(?!\d))?)"
 
 
 def _amount(text: str) -> float | None:
     t = text
-    if re.fullmatch(r"\d{1,3}(?:[,.]\d{3})+", t):
-        t = re.sub(r"[,.]", "", t)
+    grouped = re.fullmatch(r"(\d{1,3}(?:[,. ]\d{3})+)(?:[.,](\d{1,2}))?", t)
+    if grouped:
+        t = re.sub(r"[,. ]", "", grouped[1]) + (f".{grouped[2]}" if grouped[2] else "")
+    elif "," in t:
+        t = t.replace(",", ".")
     return _num(t)
 
 
-def parse_price(raw: str | None) -> dict | None:
-    """Turn a free-text price into amounts per currency (best effort; the raw text stays authoritative)."""
+def parse_price(raw: str | None, country: str | None = None) -> dict | None:
+    """Turn a free-text price into amounts per currency (best effort; the raw text stays authoritative). `country`
+    (folded) reads the words that mean a currency only there. A number with no currency stays unread."""
     if not raw:
         return None
-    low = raw.lower().replace("–", "-")
+    low = raw.translate(ARABIC_DIGITS).lower().replace("–", "-").replace(" ", " ")
+    low = re.sub(r"(\d) ,(\d{3})\b", r"\1,\2", low)
     found: dict[str, list] = {}
     order: list[str] = []
-    for code, cur in CURRENCY_TOKENS:
+    for code, cur in CURRENCY_TOKENS + LOCAL_CURRENCY_TOKENS.get(country or "", []):
         pats = [rf"(?:{cur})\s?{NUM}(?:\s?-\s?(?:{cur})?\s?{NUM})?", rf"{NUM}(?:\s?-\s?{NUM})?\s?(?:{cur})"]
         for pat in pats:
             for m in re.finditer(pat, low):
@@ -909,10 +1012,20 @@ def parse_price(raw: str | None) -> dict | None:
                     found.setdefault(code, [])
                     found[code] += [n for n in nums if n not in found[code]]
                     order.append((m.start(), code))
+    # "Free entry; guided tours can cost about 30": the entry is free, the amount is for something else
+    if re.match(r"\s*(?:free\s+(?:entry|admission|entrance)|(?:entry|admission|entrance)\s+(?:is\s+)?free)\s*[;.]", low):
+        found, order = {}, []
+    # "550, students 275. Camera ticket LE300": the entry price has no currency, so the labelled amount is something else
+    if order and re.match(r"\s*\d", low) and min(start for start, _ in order) > len(low) - len(low.lstrip()):
+        found, order = {}, []
+    zero = bool(found) and not any(n for amounts in found.values() for n in amounts)  # "0₩": no charge
+    if zero:
+        found, order = {}, []
     order_codes = [c for _, c in sorted(order)]
     currency = order_codes[0] if order_codes else None
     years = [a or b for a, b in re.findall(rf"(?:(?:{MONTHS})[a-z]*\.?\s+|\b(?:in|as of|since)\s+)(20[0-3]\d)\b|\((20[0-3]\d)\)", low)]
-    free = bool(re.match(r"\s*free\b", low)) and not found
+    free = zero or (bool(re.match(r"\s*(?:(?:admission|entry|entrance)\s+(?:is\s+)?)?free\b", low)) and not found)
+    # (a free-with-a-condition text keeps its amounts above, so it is not free here)
     out = {"raw": raw, "parsed": bool(found) or free, "free": free, "mentions_free": "free" in low,
            "currency": currency, "amounts": {k: sorted(v) for k, v in found.items()},
            "min": min(found[currency]) if currency else (0 if free else None),
@@ -925,10 +1038,12 @@ def parse_price(raw: str | None) -> dict | None:
 
 def enrich(listing: dict, overlays: dict | None = None) -> dict:
     """Public shape of a listing: structured hours/price, citation, overlays applied."""
-    item = {k: v for k, v in listing.items() if k not in ("hours_raw", "price_raw", "hours_parsed", "price_parsed")}
+    item = {k: v for k, v in listing.items()
+            if k not in ("hours_raw", "price_raw", "hours_parsed", "price_parsed", "country")}
     # A provider with structured data (Google Places) gives hours and prices already in the parsed shape.
     item["hours"] = listing["hours_parsed"] if "hours_parsed" in listing else parse_hours(listing.get("hours_raw"))
-    price = listing["price_parsed"] if "price_parsed" in listing else parse_price(listing.get("price_raw"))
+    price = (listing["price_parsed"] if "price_parsed" in listing
+             else parse_price(listing.get("price_raw"), listing.get("country")))
     item["price"] = price
     source = listing.get("source") or "Wikivoyage"
     item["citation"] = {"id": listing["id"], "title": f"{listing['name']} - {source} ({listing.get('district') or listing.get('city')})",
@@ -992,7 +1107,20 @@ def matches_interest(item: dict, wanted: list[str]) -> bool:
     return interest_score(item, wanted) > 0 or not wanted
 
 
-KIND_FOR_INTEREST = {"markets": {"buy"}, "adventure": {"do"}, "entertainment": {"do", "drink"}}
+KIND_FOR_INTEREST = {"markets": {"buy"}, "adventure": {"do"}, "entertainment": {"do", "drink"}, "history": {"see"}}
+MAX_LANDMARKS_FIRST = 10  # of a page of results: the rest is still the interests and the districts taking turns
+
+
+def is_landmark(item: dict) -> bool:
+    return item.get("kind") == "see" and bool(LANDMARK_RE.search(fold(f"{item['name']} {item.get('description') or ''}")))
+
+
+def landmarks_first(items: list[dict]) -> list[dict]:
+    """A city's great sights lead a history trip's results. A mall that mentions a restaurant and a cinema matches more
+    interests than a palace, and in a city of 20 districts the palace came 291st."""
+    first = [i for i in items if is_landmark(i)][:MAX_LANDMARKS_FIRST]
+    chosen = {id(i) for i in first}
+    return first + [i for i in items if id(i) not in chosen]
 
 
 def _matches_one(item: dict, w: str) -> bool:
@@ -1244,6 +1372,48 @@ def route(a: dict, b: dict, city: str, profile: str) -> tuple[dict, str]:
     return cached("route", key, fetch, f"Route {a['name']} -> {b['name']}")
 
 
+MAX_WARM_POINTS = 200  # stops in one routing request
+WARM_BUDGET_S = 3.0  # a warm-up is an extra: when the router is busy (429) it gives up, it does not wait its turn
+
+
+def _keep_leg(profile: str, a: dict, b: dict, duration: float, distance: float | None, via: str) -> None:
+    """A measured leg, where route() looks first."""
+    key = f"{profile}__{a['lat']:.5f},{a['lon']:.5f}__{b['lat']:.5f},{b['lon']:.5f}"
+    _MEM[("route", key)] = (time.time(), {"kind": "route", "profile": profile, "from": a, "to": b,
+                                          "distance_m": round(distance or 0, 1), "duration_s": round(duration, 1),
+                                          "retrieved_at": now_iso(), "via": via})
+
+
+def warm_routes(profile: str, points: list[dict], ride_after_s: float | None = None) -> int:
+    """Live mode: the legs between consecutive stops from ONE multi-stop route request, kept where route() looks first.
+    Routing allows one request a second, so a trip's legs one by one take a minute or more; measured, one route through
+    70 stops takes 0.14 s (the table service took 8.8 s for the same places). Each leg is the same router's answer for
+    that pair, in that direction only. A leg it cannot answer simply stays unasked. With `ride_after_s`, the legs longer
+    than that are the ones a ride is looked up for: their driving times follow in one more request. Returns the legs
+    stored."""
+    if mode() != "live" or len(points) < 2:
+        return 0
+    stored, long_legs = 0, {}
+    for first in range(0, len(points) - 1, MAX_WARM_POINTS - 1):
+        part = points[first:first + MAX_WARM_POINTS]
+        coords = ";".join(f"{p['lon']:.5f},{p['lat']:.5f}" for p in part)
+        r, _ = http_get(f"{ROUTERS[profile]}/route/v1/driving/{coords}", {"overview": "false", "continue_straight": "false"})
+        if r.status_code == 400:  # no way between two of the stops, and the answer does not say which
+            continue  # these legs are asked one by one, as without this step
+        r.raise_for_status()
+        legs = (r.json().get("routes") or [{}])[0].get("legs") or []
+        for a, b, leg in zip(part, part[1:], legs):
+            if a["id"] == b["id"] or leg.get("duration") is None:
+                continue
+            _keep_leg(profile, a, b, leg["duration"], leg.get("distance"), "OSRM route service (one multi-stop request)")
+            stored += 1
+            if ride_after_s is not None and leg["duration"] >= ride_after_s:
+                long_legs[(a["id"], b["id"])] = (a, b)
+    if long_legs:  # a table would answer per pair, but the public server refuses it under load (measured: 429)
+        stored += warm_routes("driving", [p for leg in long_legs.values() for p in leg])
+    return stored
+
+
 def record_table(city: str, profile: str, points: list[dict]) -> dict:
     """Record mode helper: OSRM table requests for many points (much lighter than N*N route calls).
     The server allows sources x destinations <= 100 x 100 per request, so sources are sent in chunks."""
@@ -1372,21 +1542,49 @@ def fx_rates() -> tuple[dict, str]:
     return cached("fx", "latest__EUR", fetch, "Exchange rates")
 
 
+OPEN_FX_URL = "https://open.er-api.com/v6/latest/USD"
+OPEN_FX_SITE = "https://www.exchangerate-api.com"
+
+
+def open_fx_rates() -> tuple[dict, str]:
+    """Market rates for the currencies the ECB does not publish (EGP, MAD, ...), with their own date and attribution."""
+    def fetch() -> dict:
+        r, url = http_get(OPEN_FX_URL)
+        r.raise_for_status()
+        d = r.json()
+        if d.get("result") != "success":
+            raise RuntimeError("the rate service gave no rates")
+        date = dt.datetime.fromtimestamp(d["time_last_update_unix"], dt.timezone.utc).date().isoformat()
+        return {"kind": "fx", "base": d["base_code"], "date": date, "rates": d["rates"],
+                "source": "ExchangeRate-API open rates", "source_url": url,
+                "licence": f"Rates By Exchange Rate API ({OPEN_FX_SITE})", "retrieved_at": now_iso()}
+    return cached("fx", "latest__open", fetch, "Exchange rates")
+
+
 def convert(amount: float, src: str, dst: str) -> dict:
     src, dst = src.strip().upper(), dst.strip().upper()
     rec, m = fx_rates()
     rates = dict(rec["rates"], **{rec["base"]: 1.0})
     peg = None
+    market = None
     for code in (src, dst):
         if code not in rates:
             if code == "JOD" and "USD" in rates:
                 rates["JOD"] = rates["USD"] * JOD_PER_USD
                 peg = code
             else:
-                raise DataError(422, "unknown_currency", f"{code} is not in the ECB reference rates.",
-                                supported=sorted(rates))
+                try:
+                    market = open_fx_rates()[0]
+                except DataError:
+                    market = None
+                if market is None or code not in market["rates"] or "USD" not in rates:
+                    raise DataError(422, "unknown_currency", f"{code} is not in the ECB reference rates.",
+                                    supported=sorted(rates))
+                rates[code] = rates["USD"] * market["rates"][code]  # per USD, then the ECB's USD
     rate = rates[dst] / rates[src]
-    out = {"amount": amount, "from": src, "to": dst, "rate": round(rate, 6), "converted": round(amount * rate, 2),
+    # a won or a forint is a fraction of a cent: six decimals would lose a digit that matters on a large price
+    out = {"amount": amount, "from": src, "to": dst, "rate": round(rate, 6 if rate >= 0.01 else 9),
+           "converted": round(amount * rate, 2),
            "rate_date": rec["date"], "method": "ecb_reference_rate", "source": rec["source"],
            "source_url": rec["source_url"], "licence": rec["licence"], "mode": m, "retrieved_at": rec["retrieved_at"],
            "note": "Reference rate; banks and exchange offices charge a margin. Use it for estimates only.",
@@ -1398,6 +1596,13 @@ def convert(amount: float, src: str, dst: str) -> dict:
                         "Jordan peg (1 USD = 0.709 JOD). Estimate only.")
         out["citation"] = {"id": "fx-jod-peg", "title": "JOD fixed peg 1 USD = 0.709 JOD (Central Bank of Jordan) "
                            f"+ ECB USD rate {rec['date']}", "url": JOD_PEG_SOURCE}
+    if market:
+        out.update(method="market_rate_via_usd", rate_date=market["date"], source=market["source"],
+                   source_url=OPEN_FX_SITE, licence=market["licence"],
+                   note=f"Not in the ECB reference rates: {market['source']} market rate of {market['date']} through "
+                        f"USD (ECB USD rate {rec['date']}). Estimate only.")
+        out["citation"] = {"id": f"fx-open-{market['date']}", "url": OPEN_FX_SITE,
+                           "title": f"{market['source']} {market['date']} + ECB USD rate {rec['date']}"}
     return out
 
 

@@ -106,6 +106,7 @@ def wikivoyage(monkeypatch):
     monkeypatch.delenv("TRAVEL_OVERLAYS", raising=False)
     monkeypatch.setattr(td, "http_get", http_get)
     monkeypatch.setattr(td, "_MEM", {})
+    monkeypatch.setattr(td, "_listings_memo", {})
     return asked
 
 

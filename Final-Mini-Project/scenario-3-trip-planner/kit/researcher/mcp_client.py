@@ -24,6 +24,8 @@ from typing import Any, Iterator
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+from researcher import perf
+
 KIT_DIR = Path(__file__).resolve().parents[1]
 
 # The only tools the Researcher may call. save_trip is deliberately missing.
@@ -35,6 +37,7 @@ READ_ONLY_TOOLS = frozenset({
     "get_weather",
     "convert_currency",
     "travel_time",
+    "warm_routes",
 })
 
 
@@ -152,6 +155,20 @@ class _SharedSession:
 _shared = _SharedSession()
 
 
+def open_session_early() -> None:
+    """Start the MCP server before anyone needs it: the first traveller after a restart paid about 3 s for it. Only a
+    head start: if it fails, the first call starts the server and reports what it gets."""
+    if os.environ.get("MCP_SHARED_SESSION", "1").strip() == "0":
+        return
+    try:
+        with _shared._lock:
+            if _shared._session is None or _shared._loop is None:
+                _shared._reset()
+                _shared._start()
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def reset_shared_session() -> None:
     """Close the shared MCP server process; the next call starts a new one (with the environment of that moment)."""
     with _shared._lock:
@@ -238,14 +255,20 @@ def _dispatch(name: str, args: dict | None) -> dict:
     (they may hold a traveller's data). A call that could not reach the server is recorded as failed, then
     re-raised. Used by call_read_tool and by the application's own write path (app/mcp_app_client.py) only."""
     started = time.perf_counter()
+    trace = perf.current()
     try:
         result = _transport(name, dict(args or {}))
     except Exception as exc:
-        record_call({"tool": name, "ok": False, "ms": round((time.perf_counter() - started) * 1000),
+        ms = round((time.perf_counter() - started) * 1000)
+        if trace is not None:
+            trace.add_tool(name, _STAGE.get(), ms, False)
+        record_call({"tool": name, "ok": False, "ms": ms,
                      "agent": _STAGE.get(), "via": "mcp", "error": f"mcp_unavailable ({type(exc).__name__})"})
         raise
     entry = {"tool": name, "ok": _error_code(result) is None, "ms": round((time.perf_counter() - started) * 1000),
              "agent": _STAGE.get(), "via": "mcp"}
+    if trace is not None:
+        trace.add_tool(name, _STAGE.get(), entry["ms"], entry["ok"])
     if not entry["ok"]:
         entry["error"] = _error_code(result)
     record_call(entry)

@@ -91,7 +91,7 @@ def test_the_stdio_server_starts_and_lists_the_kit_tools(api):
                 return {t.name for t in (await session.list_tools()).tools}
 
     assert asyncio.run(names()) == {"geocode", "find_attractions", "find_restaurants", "get_opening_hours",
-                                    "get_weather", "convert_currency", "travel_time", "save_trip", "list_trips",
+                                    "get_weather", "convert_currency", "travel_time", "warm_routes", "save_trip", "list_trips",
                                     "get_preferences", "save_preferences"}
 
 

@@ -22,10 +22,11 @@ No LLM, no network except through the injected lookups, nothing saved.
 """
 from __future__ import annotations
 
+import contextvars
 import datetime as dt
 import re
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from typing import TYPE_CHECKING, Callable, Iterable, Literal, NamedTuple, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
@@ -34,7 +35,7 @@ from .budget import BudgetSummary, money, summarize
 from .budget_analyst import BudgetReport, fold, match_required, prepare_candidates
 from .models import Activity, Itinerary
 from .research import ResearchBundle, ResearchedPlace
-from .schedule import DayHours, ScheduleRules, TravelLookup, hours_on, to_minutes, trip_dates
+from .schedule import DayHours, ScheduleRules, TravelLookup, hours_on, to_minutes, trip_dates, within
 
 if TYPE_CHECKING:  # itinerary_planner imports CrewAI; the checks themselves do not need it
     from .itinerary_planner import PlannerReport
@@ -341,8 +342,11 @@ class FreshLookups:
     never a guess. None from hours()/travel() means no lookup was made (no source, or the limit was reached)."""
 
     def __init__(self, hours_lookup: HoursLookup | None = None, travel_lookup: TravelLookup | None = None, *,
-                 max_lookups: int = DEFAULT_MAX_LOOKUPS):
+                 max_lookups: int = DEFAULT_MAX_LOOKUPS, seconds: float | None = None):
         self._hours, self._travel, self._max = hours_lookup, travel_lookup, max_lookups
+        # A time limit, when the caller has one: past it no new lookup starts. A question not answered is exactly a
+        # question not asked: its fact stays unknown (never assumed), and the plan cannot pass on it.
+        self._deadline = None if seconds is None else time.monotonic() + seconds
         self._cache: dict[tuple, dict] = {}
         self.calls: list[dict] = []
         self.skipped = 0  # questions not asked because the limit was reached
@@ -359,10 +363,17 @@ class FreshLookups:
             return self._cache[key]
         if fn is None:
             return None
-        if len(self.calls) >= self._max:
+        if len(self.calls) >= self._max or (self._deadline is not None and time.monotonic() >= self._deadline):
             self.skipped += 1
             return None
-        result, ms = _call(fn, args)
+        if self._deadline is None:
+            result, ms = _call(fn, args)
+        else:
+            try:
+                result, ms = within(self._deadline - time.monotonic(), _call, fn, args)
+            except TimeoutError:  # asked, not answered in time: exactly a question not asked
+                self.skipped += 1
+                return None
         self._record(tool, args, result, ms)
         return result
 
@@ -381,10 +392,15 @@ class FreshLookups:
         todo = todo[:max(0, self._max - len(self.calls))]
         if len(todo) < 2:
             return
-        with ThreadPoolExecutor(max_workers=min(PREFETCH_WORKERS, len(todo))) as pool:
-            futures = [pool.submit(_call, fns[tool], args) for tool, args in todo]
-            for (tool, args), future in zip(todo, futures):
+        pool = ThreadPoolExecutor(max_workers=min(PREFETCH_WORKERS, len(todo)))
+        # each worker carries this request's context, so its lookups are recorded with the request's
+        futures = [pool.submit(contextvars.copy_context().run, _call, fns[tool], args) for tool, args in todo]
+        left = None if self._deadline is None else max(0.0, self._deadline - time.monotonic())
+        done, _ = wait(futures, timeout=left)
+        for (tool, args), future in zip(todo, futures):
+            if future in done:
                 self._record(tool, args, *future.result())
+        pool.shutdown(wait=False, cancel_futures=True)
 
 
 PREFETCH_WORKERS = 6
@@ -1058,7 +1074,8 @@ def _from_store(data: dict) -> dict:
 def verify_itinerary(itinerary: Itinerary | dict | None, bundle: ResearchBundle, *,
                      budget_report: BudgetReport | None = None, planner_report: PlannerReport | None = None,
                      hours_lookup: HoursLookup | None = None, travel_lookup: TravelLookup | None = None,
-                     rules: ScheduleRules | None = None, max_lookups: int = DEFAULT_MAX_LOOKUPS) -> VerificationReport:
+                     rules: ScheduleRules | None = None, max_lookups: int = DEFAULT_MAX_LOOKUPS,
+                     lookup_seconds: float | None = None) -> VerificationReport:
     """Check the final itinerary against the request, the research and (when given) fresh lookups.
 
     `itinerary`: an Itinerary, a Trip Store dict (its estimated_total is checked as a claim), or None to take the
@@ -1067,7 +1084,7 @@ def verify_itinerary(itinerary: Itinerary | dict | None, bundle: ResearchBundle,
     by the Coordinator; tests replay recorded results. Never raises on a bad plan: every problem is a finding.
     """
     rules = rules or ScheduleRules.from_trip(bundle.trip)
-    lookups = FreshLookups(hours_lookup, travel_lookup, max_lookups=max_lookups)
+    lookups = FreshLookups(hours_lookup, travel_lookup, max_lookups=max_lookups, seconds=lookup_seconds)
     v = _Verifier(bundle, budget_report, planner_report, rules, lookups)
     if itinerary is None and planner_report is not None:
         itinerary = planner_report.itinerary

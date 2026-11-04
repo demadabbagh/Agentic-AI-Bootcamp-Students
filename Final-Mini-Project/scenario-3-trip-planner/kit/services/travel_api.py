@@ -22,6 +22,7 @@ import time
 from collections import deque
 from pathlib import Path
 
+import httpx
 from fastapi import Body, Depends, FastAPI, Header, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -248,6 +249,8 @@ def attractions(city: str = Query(..., min_length=2), interest: str | None = Que
     wanted = td.interest_tags(interest)
     items = [l for l in listings if l["kind"] in ("see", "do", "buy") and td.matches_interest(l, wanted)]
     items = td.distribute(items, wanted)  # most relevant first, spread over the districts, mappable first
+    if "history" in wanted:
+        items = td.landmarks_first(items)
     names = [td.fold(w) for w in wanted if w not in td.TAG_RULES]
     if names:  # a place name as the interest: the listing with that name comes first
         items.sort(key=lambda l: not any(n in td.fold(f"{l['name']} {l.get('alt') or ''}") for n in names))
@@ -390,6 +393,39 @@ def route(from_: str = Query(..., alias="from", min_length=2), to: str = Query(.
             "retrieved_at": rec.get("retrieved_at"), "mode": m,
             "citation": {"id": f"osrm-{profile}-{td.slug(a['name'])}-{td.slug(b['name'])}",
                          "title": f"{profile} time {a['name']} -> {b['name']} (OSRM, OpenStreetMap)", "url": url}}
+
+
+@app.post("/api/route/warm", dependencies=[Depends(require_key)])
+def route_warm(body: dict = Body(..., examples=[{"city": "Istanbul", "places": ["Hagia Sophia", "Galata Tower"],
+                                                 "mode": "foot"}])):
+    """Fetch the legs between consecutive places of this list in one request, so GET /api/route answers them from
+    memory. Only an optimisation: it changes no answer, and with recorded data (replay) there is nothing to do."""
+    fault("route")
+    profile = td.route_profile(str(body.get("mode") or "foot"))
+    if td.mode() != "live":
+        return {"warmed": 0, "mode": td.mode()}
+    city, places = str(body.get("city") or ""), body.get("places")
+    if len(city) < 2 or not isinstance(places, list):
+        raise ApiError(422, "bad_value", "city and a list of places are required.")
+    listings, meta = listings_for(city)
+    located = [item for item in listings if item.get("lat") is not None]
+    points, found = [], {}
+    for name in places[:4 * td.MAX_WARM_POINTS]:  # a place may come back: the order is the route
+        if name not in found:
+            found[name] = td.find_listing(located, str(name))[0]
+        item = found[name]
+        if item:
+            points.append({"name": item["name"], "id": item["id"], "lat": item["lat"], "lon": item["lon"],
+                           "resolved_by": f"{(item.get('source') or 'Wikivoyage').lower()} listing",
+                           "source_url": item.get("source_url")})
+    ride_after = body.get("ride_after_minutes")
+    ride_after_s = max(0, ride_after - 1) * 60 if isinstance(ride_after, int) and not isinstance(ride_after, bool) else None
+    try:
+        with td.request_budget(td.WARM_BUDGET_S):
+            warmed = td.warm_routes(profile, points, ride_after_s)
+    except httpx.HTTPError:  # busy or out of time: the lookups that follow ask one by one and say what they get
+        warmed = 0
+    return {"warmed": warmed, "stops": len(points), "mode": td.mode()}
 
 
 # ------------------------------------------------------------------ write side (simulated Trip Store)

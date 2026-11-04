@@ -24,6 +24,8 @@ from __future__ import annotations
 import calendar
 import datetime as dt
 import re
+import contextvars
+import threading
 import time
 from typing import Callable, Iterable, Literal, Mapping, Sequence
 
@@ -230,11 +232,33 @@ class TravelLeg(BaseModel):
     walk_minutes: int | None = None
 
 
+def within(seconds: float, fn: Callable, *args):
+    """fn(*args), or TimeoutError after `seconds`. A time limit that only stops new lookups does not hold: one routing
+    answer took 6.4 s. The late answer is dropped here, so the fact stays unknown."""
+    box: dict = {}
+
+    def run() -> None:
+        try:
+            box["value"] = fn(*args)
+        except Exception as exc:  # noqa: BLE001 - handed to the caller below
+            box["error"] = exc
+
+    worker = threading.Thread(target=contextvars.copy_context().run, args=(run,), daemon=True)
+    worker.start()
+    worker.join(max(0.0, seconds))
+    if worker.is_alive():
+        raise TimeoutError("the time limit for lookups was reached")
+    if "error" in box:
+        raise box["error"]
+    return box["value"]
+
+
 class TravelTimes:
     """Travel legs from an injected lookup, cached per ordered pair, with a bound on lookups."""
 
-    def __init__(self, lookup: TravelLookup | None, *, max_lookups: int = 40):
+    def __init__(self, lookup: TravelLookup | None, *, max_lookups: int = 40, seconds: float | None = None):
         self._lookup, self._max = lookup, max_lookups
+        self._deadline = None if seconds is None else time.monotonic() + seconds
         self._cache: dict[tuple[str, str], TravelLeg] = {}
         self.calls: list[dict] = []  # contract-style tool_calls: tool, ok, ms (+ the pair)
 
@@ -270,9 +294,14 @@ class TravelTimes:
             return TravelLeg(status="not_looked_up", note="no travel-time source was given", **base)
         if len(self.calls) >= self._max:
             return TravelLeg(status="not_looked_up", note=f"the travel lookup limit ({self._max}) was reached", **base)
+        if self._deadline is not None and time.monotonic() >= self._deadline:
+            return TravelLeg(status="not_looked_up", note="the time limit for travel lookups was reached", **base)
         started = time.perf_counter()
         try:
-            result = self._lookup(a.name, b.name)
+            if self._deadline is None:
+                result = self._lookup(a.name, b.name)
+            else:
+                result = within(self._deadline - time.monotonic(), self._lookup, a.name, b.name)
         except Exception as exc:  # a failing tool is an unknown travel time, never a guess
             self._log(a, b, False, started)
             return TravelLeg(status="unavailable", error_code="lookup_error", note=f"{type(exc).__name__}", **base)
