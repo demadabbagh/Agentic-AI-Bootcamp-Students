@@ -19,8 +19,8 @@ export function completeConfig(config) {
   return Boolean(config?.apiKey && config.authDomain && config.projectId && config.appId)
 }
 
-function notConfigured(missing, serverReached) {
-  return Object.assign(new Error('not configured'), { code: 'auth/not-configured', missing, serverReached })
+function notConfigured(missing, serverReached, hints = []) {
+  return Object.assign(new Error('not configured'), { code: 'auth/not-configured', missing, serverReached, hints })
 }
 
 // The config to sign in with, or a rejection with code auth/not-configured (and `missing`: the setting names the
@@ -36,8 +36,15 @@ export async function resolveFirebaseConfig(fetchImpl = globalThis.fetch, build 
     // not reachable, or not JSON: this build's own config may still do
   }
   if (completeConfig(server?.web)) return server.web
-  if (completeConfig(build)) return build
-  throw notConfigured(Array.isArray(server?.missing) ? server.missing : [], reached)
+  if (completeConfig(build)) {
+    // A sign-in to another project would be refused by the backend, with a far less clear message.
+    if (server?.project_id && server.project_id !== build.projectId) {
+      throw Object.assign(new Error('other project'), { code: 'auth/project-mismatch' })
+    }
+    return build
+  }
+  throw notConfigured(Array.isArray(server?.missing) ? server.missing : [], reached,
+    Array.isArray(server?.hints) ? server.hints : [])
 }
 
 let firebasePromise = null

@@ -51,7 +51,7 @@ export default function LoginModal({ reason, onClose, onSignIn }) {
     let active = true
     loadFirebaseAuth().then(
       () => { if (active) setSetupError(null) },
-      (err) => { if (active && err?.code === 'auth/not-configured') setSetupError(err) },
+      (err) => { if (active && ['auth/not-configured', 'auth/project-mismatch'].includes(err?.code)) setSetupError(err) },
     )
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'

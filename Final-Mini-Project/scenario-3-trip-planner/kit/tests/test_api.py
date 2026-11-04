@@ -43,6 +43,7 @@ def make_pending_trip(session_id="test-session"):
         "trip_details": {},
         "pending_action": {
             "action_id": "correct-id",
+            "summary": "Save the trip in the Rihla Trip Store.",
             "type": "save_trip",
             "verification_status": "verified",
             "itinerary_hash": hashlib.sha256(

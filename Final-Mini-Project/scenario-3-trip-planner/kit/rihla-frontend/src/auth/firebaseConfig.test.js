@@ -50,4 +50,19 @@ describe('Firebase settings: any copy of Rihla can sign in when its backend is s
     const error = await resolveFirebaseConfig(answer(200, { web: partial }), partial).catch((e) => e)
     assert.equal(error.code, 'auth/not-configured')
   })
+
+  it('refuses a build set up for another project, instead of a sign-in the backend would reject', async () => {
+    const error = await resolveFirebaseConfig(answer(200, { web: null, project_id: 'the-backends-project' }), WEB)
+      .catch((e) => e)
+    assert.equal(error.code, 'auth/project-mismatch')
+    assert.match(signInErrorMessage(error), /VITE_FIREBASE_PROJECT_ID.*RIHLA_FIREBASE_PROJECT_ID/)
+    assert.deepEqual(await resolveFirebaseConfig(answer(200, { web: null, project_id: 'demo' }), WEB), WEB)
+  })
+
+  it("passes on the server's hint about a wrongly named setting", async () => {
+    const hints = ['FIREBASE_API_KEY is not a name Rihla reads: use RIHLA_FIREBASE_WEB_API_KEY.']
+    const error = await resolveFirebaseConfig(answer(200, { web: null, missing: ['RIHLA_FIREBASE_WEB_API_KEY'], hints }),
+      NONE).catch((e) => e)
+    assert.match(signInErrorMessage(error), /FIREBASE_API_KEY is not a name Rihla reads/)
+  })
 })

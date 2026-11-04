@@ -278,7 +278,7 @@ def test_a_revision_invalidates_the_old_approval_and_never_approves_an_unverifie
 
 
 def test_a_question_keeps_the_pending_approval_of_the_plan_on_screen(session):
-    pending = {"action_id": "keep-me", "type": "save_trip", "verification_status": "verified",
+    pending = {"action_id": "keep-me", "type": "save_trip", "summary": "Save the plan.", "verification_status": "verified",
                "itinerary_hash": "x", "payload": {"itinerary": session["itinerary"]}}
     session["pending_action"] = pending
     with patch("app.orchestrator.understand_trip_request", return_value={"intent": "revise_trip"}):

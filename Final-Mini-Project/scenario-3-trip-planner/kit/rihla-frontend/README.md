@@ -32,7 +32,10 @@ its own HttpOnly session cookie. Nothing else is trusted.
 1. from the backend, `GET /api/auth/config`, built from the backend's environment (preferred: one place, and the
    project always matches the one the backend verifies against);
 2. else from this build's `.env.local` (`VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`,
-   `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID`; see `.env.example`).
+   `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID`; see `.env.local.example`).
+
+In development the backend also reads those public values from `rihla-frontend/.env.local`, so they only need to
+be in one place. In production (`RIHLA_ENV=production`) it does not: set them in the backend's environment.
 
 If neither is complete, the login window names the missing settings (names only, never values).
 
@@ -48,9 +51,18 @@ for the web app. Restart the backend after a change.
 3. Project settings > General > Your apps: add a Web app if there is none, and copy its `apiKey` and `appId`
    into the backend `.env` as above.
 
-**Someone else running their own copy** (a teammate's clone) needs the same backend `.env` lines: the web
-`apiKey`/`appId` and project ID can be shared (they are public), but each deployment should generate its own
-`RIHLA_SESSION_SECRET`. Any Google account can then sign in; each gets its own private traveller and trips.
+**A teammate setting up their own copy** (the same Firebase project; nothing is copied from anyone's `.env`):
+
+```powershell
+copy .env.example .env                                    # in kit/
+copy rihla-frontend\.env.local.example rihla-frontend\.env.local
+python -c "import secrets; print(secrets.token_urlsafe(48))"   # your own RIHLA_SESSION_SECRET, never shared
+python -m app.auth.check                                  # says what is still missing (names only, never values)
+```
+
+Fill in `RIHLA_FIREBASE_PROJECT_ID`, your `RIHLA_SESSION_SECRET` and `RIHLA_AUTH_REQUIRED=true` in `.env`, and the
+four `VITE_FIREBASE_*` values in `.env.local`. Those four are public, so the project owner can share them. Any Google
+account can then sign in; each gets its own private traveller and trips.
 
 ## What the page promises
 

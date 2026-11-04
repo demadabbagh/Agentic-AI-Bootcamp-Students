@@ -18,11 +18,15 @@ const MESSAGES = {
         'README), then try again. Alternatively set VITE_FIREBASE_* in rihla-frontend/.env.local and restart the frontend.'
     }
     const names = Array.isArray(error?.missing) && error.missing.length ? error.missing.join(', ') : null
+    const hints = Array.isArray(error?.hints) && error.hints.length ? `${error.hints.join(' ')} ` : ''
     return 'Google sign-in is not set up on this Rihla server yet. ' +
-      (names ? `The server is missing: ${names}. ` : '') +
-      'Whoever runs it must add the Firebase settings to the backend .env (see .env.example) and restart it, ' +
-      'or set VITE_FIREBASE_* in rihla-frontend/.env.local.'
+      (names ? `The server is missing: ${names}. ` : '') + hints +
+      'Add the VITE_FIREBASE_* settings to rihla-frontend/.env.local (see .env.local.example) or the RIHLA_FIREBASE_* ones to the backend ' +
+      '.env (see .env.example), then restart.'
   },
+  'auth/project-mismatch':
+    'This frontend is set up for a different Firebase project than the backend. Make VITE_FIREBASE_PROJECT_ID in ' +
+    'rihla-frontend/.env.local the same as RIHLA_FIREBASE_PROJECT_ID in the backend .env, then restart both.',
 }
 
 const SILENT = new Set(['auth/popup-closed-by-user', 'auth/cancelled-popup-request', 'auth/user-cancelled'])

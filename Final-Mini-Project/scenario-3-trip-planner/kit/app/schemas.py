@@ -54,13 +54,22 @@ class ChatRequest(BaseModel):
 
 
 class PendingAction(BaseModel):
-    """The public approval action from CONTRACT §2; implementation checks stay server-side."""
+    """The public approval action from CONTRACT §2; implementation checks stay server-side.
+
+    Only what is declared here leaves the server: extra="ignore" keeps itinerary_hash and anything else internal in
+    the session. After the four contract fields come Rihla's own display fields, an explicit allow-list: the dashboard
+    needs them to offer Approve and to say what the approval relies on (app/approval_policy.py). They are shown to
+    the traveller and never read back: /api/approve decides from the session's own copy of the action."""
     model_config = ConfigDict(extra="ignore")
 
     action_id: str
     type: Literal["create_booking", "cancel_booking", "create_ticket", "save_trip"]
     summary: str
     payload: dict[str, Any]
+    verification_status: Literal["verified", "verified_on_records"] | None = None  # approvable plans only
+    evidence_basis: Literal["fresh", "recorded", "mixed"] | None = None
+    approval_basis: Literal["live", "recorded"] | None = None
+    disclosure: str | None = None
 
 
 class ChatResponse(BaseModel):

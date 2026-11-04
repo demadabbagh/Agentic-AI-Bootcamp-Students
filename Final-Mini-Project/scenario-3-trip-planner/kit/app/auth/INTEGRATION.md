@@ -51,7 +51,8 @@ another user's). **The team decides which mode the `v1.0` README starts.**
 | `RIHLA_ALLOWED_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | the default; add the deployed web origin |
 | `RIHLA_COOKIE_SECURE` | `auto` | `auto`: Secure except for a local http origin; set `true` in production |
 
-Frontend: `rihla-frontend/.env.local` from `rihla-frontend/.env.example` (`VITE_FIREBASE_*`).
+Frontend: `rihla-frontend/.env.local` from `rihla-frontend/.env.local.example` (`VITE_FIREBASE_*`). Check a
+machine's setup with `python -m app.auth.check` (from `kit/`; prints names only, never values).
 
 ### Firebase console (once)
 
