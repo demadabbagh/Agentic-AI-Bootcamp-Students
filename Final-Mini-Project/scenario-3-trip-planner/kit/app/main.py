@@ -281,6 +281,11 @@ def _plan_response(session_id: str, session: dict, result: dict, *, traveller_id
                                                 "verified", "disclosure", "reason")}
 
     message = result.get("message")
+    if pending_action is not None and isinstance(message, str) and "No approval is allowed." in message:
+        # The policy made this plan approvable (e.g. every check passed on recorded data): the verifier's strict
+        # "no approval" sentence would contradict the Approve button. Its disclosure says what approval relies on.
+        message = message.replace("No approval is allowed.", "You can approve it: "
+                                  + (eligibility.get("disclosure") or "it meets the approval policy."))
     if offer is not None and isinstance(message, str):
         # Approval stays refused; the traveller is told the plan can still be saved, as their own decision.
         message = message.replace("No approval is allowed.", "It cannot be approved as verified, but you can save "

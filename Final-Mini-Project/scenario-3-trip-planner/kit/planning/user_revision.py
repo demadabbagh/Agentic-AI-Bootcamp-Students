@@ -45,7 +45,7 @@ from .schedule import ScheduleRules, TravelLookup, TravelTimes, hours_on, schedu
 from .setting import setting
 
 OpKind = Literal["set_budget", "cheaper", "free_alternatives", "remove", "replace", "add", "move", "start_time",
-                 "lighten_day", "walk_limit", "use_rides", "prefer",
+                 "lighten_day", "walk_limit", "use_rides", "prefer", "family_friendly",
                  # WHAT IF (app/whatif.py): hypothetical conditions, applied with the same edits as the ones above
                  "closed", "rain_indoor"]
 
@@ -73,6 +73,22 @@ STOP = {"the", "a", "an", "my", "of", "on", "day", "to", "from", "and", "with", 
         "activity", "activities", "place", "places", "visit", "stop", "attraction", "attractions", "experience",
         "experiences", "for", "trip", "itinerary"}
 MAX_ADDED = 2  # "add more X": at most this many places per request
+FAMILY_WALK_MINUTES = 20  # "more suitable for families": the walking limit (only ever lowered, never raised)
+# Money words in a request -> ISO codes ("try" and "mad" are English words: TRY and MAD count only next to an
+# amount, as a 3-letter code). A budget amount in another currency than the trip's is converted with a
+# convert_currency rate only (convert_budget_currency): never taken as if it were in the trip's currency.
+CURRENCY_WORDS = {
+    "€": "EUR", "eur": "EUR", "euro": "EUR", "euros": "EUR", "£": "GBP", "gbp": "GBP", "pound": "GBP",
+    "pounds": "GBP", "sterling": "GBP", "$": "USD", "usd": "USD", "dollar": "USD", "dollars": "USD",
+    "us dollars": "USD", "lira": "TRY", "liras": "TRY", "jod": "JOD", "dinar": "JOD",
+    "dinars": "JOD", "jd": "JOD", "aed": "AED", "dirham": "AED", "dirhams": "AED", "sar": "SAR", "riyal": "SAR",
+    "riyals": "SAR", "egp": "EGP", "chf": "CHF", "franc": "CHF", "francs": "CHF", "jpy": "JPY", "yen": "JPY",
+    "cad": "CAD", "aud": "AUD", "inr": "INR", "rupee": "INR", "rupees": "INR", "qar": "QAR",
+    "kwd": "KWD", "bhd": "BHD", "omr": "OMR",
+}
+ISO_CODES = set(CURRENCY_WORDS.values()) | {"TRY", "MAD", "NZD", "SEK", "NOK", "DKK", "CNY", "SGD", "THB", "MYR"}
+_CUR_RE = "|".join(sorted((re.escape(k) for k in CURRENCY_WORDS), key=len, reverse=True))
+_AMOUNT = re.compile(r"(?:(" + _CUR_RE + r"|\b[a-z]{3})\s*)?(\d[\d,]*(?:\.\d+)?)(?:\s*(" + _CUR_RE + r"|[a-z]{3})\b)?")
 
 
 class RevisionOp(BaseModel):
@@ -87,7 +103,10 @@ class RevisionOp(BaseModel):
     tag: str | None = None  # an interest tag (add, replace with, prefer)
     from_tag: str | None = None  # prefer A instead of B: B
     amount: Decimal | None = None  # set_budget: the new total
-    minutes: int | None = None  # walk_limit
+    currency: str | None = None  # set_budget: the currency `amount` was given in, when not the trip's (converted
+    # by convert_budget_currency before anything is applied)
+    category: Literal["restaurant", "attraction"] | None = None  # cheaper: only this kind of planned place
+    minutes: int | None = None  # walk_limit, family_friendly
     time: str | None = None  # start_time: HH:MM
     note: str = ""  # Python's words for what was understood
 
@@ -99,6 +118,10 @@ class Interpretation(BaseModel):
     clarification: str | None = None  # one specific question: nothing is changed
     infeasible: str | None = None  # why it cannot be done (or conflicts): nothing is changed
     understood: list[str] = Field(default_factory=list)
+    # who read the request: Python's rules, or the Revision Agent's interpretation step (planning/
+    # revision_interpreter.py), whose operations Python validated against this plan
+    source: Literal["rules", "revision_agent"] = "rules"
+    agent_error: str | None = None  # why the agent's reading was not used (the rules read it instead)
 
 
 class PlanState(BaseModel):
@@ -181,6 +204,100 @@ def _bad_day(text: str, st: PlanState) -> str | None:
     return None
 
 
+def currency_code(word: str | None) -> str | None:
+    """An ISO code for a currency word, symbol or code ("euros", "€", "eur" -> "EUR"); None when not one."""
+    if not word:
+        return None
+    w = _norm(word.replace("€", " eur ").replace("£", " gbp ")).strip()
+    if w in CURRENCY_WORDS:
+        return CURRENCY_WORDS[w]
+    return w.upper() if re.fullmatch(r"[a-z]{3}", w) and w.upper() in ISO_CODES else None
+
+
+def _amount_after(text: str, start: int = 0) -> tuple[Decimal, str | None] | None:
+    """The first money amount in `text` from `start` that is not a percentage, with its currency if stated."""
+    for m in _AMOUNT.finditer(text, start):
+        if re.match(r"\s*%", text[m.end():]) or re.match(r"\s*(?:min|minute|am|pm|a\.m|p\.m|:)", text[m.end():]):
+            continue
+        if re.search(r"\bday\s*$", text[:m.start(2)]):  # "day 2" is a day, not an amount
+            continue
+        code = currency_code(m.group(1)) or currency_code(m.group(3))
+        return Decimal(m.group(2).replace(",", "")), code
+    return None
+
+
+def money_text(amount: Decimal) -> str:
+    shown = f"{amount:f}"
+    return shown.rstrip("0").rstrip(".") if "." in shown else shown
+
+
+def budget_op(st: PlanState, amount: Decimal, currency: str | None = None) -> RevisionOp | Interpretation:
+    """set_budget to an absolute amount; in another currency than the trip's it is converted later
+    (convert_budget_currency), with a convert_currency rate only."""
+    trip_cur = st.budget_report.currency
+    if amount <= 0:
+        return Interpretation(infeasible="A budget must be more than zero.")
+    if currency and currency != trip_cur:
+        return RevisionOp(kind="set_budget", amount=money(amount), currency=currency,
+                          note=f"budget set to {money(amount)} {currency} (converted to {trip_cur}, the trip's "
+                               "currency)")
+    return RevisionOp(kind="set_budget", amount=money(amount), note=f"budget set to {money(amount)} {trip_cur}")
+
+
+def budget_percent_op(st: PlanState, pct: Decimal, up: bool) -> RevisionOp | Interpretation:
+    budget = st.budget_report.budget_total
+    if budget is None:
+        return Interpretation(infeasible="This trip has no budget yet, so it cannot be changed by a percentage. "
+                                         "Tell me the budget you want, for example \"Set my budget to 600\".")
+    if not 0 < pct < 100 and not up:
+        return Interpretation(infeasible=f"A {money_text(pct)}% reduction is not possible: give a percentage below 100.")
+    if pct <= 0:
+        return Interpretation(infeasible="Give a percentage above 0.")
+    new = money(budget * (1 + pct / 100) if up else budget * (1 - pct / 100))
+    return RevisionOp(kind="set_budget", amount=new,
+                      note=f"budget {'raised' if up else 'reduced'} by {money_text(pct)}%: "
+                           f"{budget} -> {new} {st.budget_report.currency}")
+
+
+def start_time_ops(st: PlanState, dates: list[dt.date], hour: int, minute: int) -> list[RevisionOp] | Interpretation:
+    if not 0 <= hour <= 23 or not 0 <= minute <= 59:
+        return Interpretation(infeasible="That is not a valid time.")
+    hhmm = f"{hour:02d}:{minute:02d}"
+    rules = st.rules
+    if not rules.day_start <= hhmm < rules.day_end:
+        return Interpretation(infeasible=f"The planning day runs {rules.day_start}-{rules.day_end}: a start at "
+                                         f"{hhmm} is outside it.")
+    return [RevisionOp(kind="start_time", date=d, time=hhmm, note=f"{_day_label(st, d)} starts at {hhmm}")
+            for d in dates]
+
+
+def current_walk_limit(st: PlanState) -> int:
+    from .plan_quality import QualityRules
+    return st.rules.max_walk_minutes or st.bundle.trip.max_walk_minutes or QualityRules().long_walk_minutes
+
+
+def reduce_walking_op(st: PlanState) -> RevisionOp | Interpretation:
+    """"Reduce walking time" with no number: the walking limit is lowered (halved from 20 minutes up, else 5
+    minutes less), never below 10. Long walks are then reordered, or planned as a ride where a driving time is
+    measured."""
+    cur = current_walk_limit(st)
+    if cur <= 10:
+        return Interpretation(infeasible=(
+            f"Your walking limit is already {cur} minutes, the lowest I plan for. I can plan taxis for the longer "
+            "legs instead: \"Use a taxi for long distances\"."))
+    new = max(10, cur // 2 if cur >= 20 else cur - 5)
+    return RevisionOp(kind="walk_limit", minutes=new, note=f"walking limit lowered from {cur} to {new} minutes")
+
+
+def _tags_of(phrase: str) -> list[str]:
+    out: list[str] = []
+    for word in re.findall(r"[a-z]+", phrase):
+        tag = INTEREST_WORDS.get(word)
+        if tag and tag not in out:
+            out.append(tag)
+    return out
+
+
 def _tag_of(phrase: str) -> str | None:
     for word in re.findall(r"[a-z]+", phrase):
         if word in INTEREST_WORDS:
@@ -237,8 +354,12 @@ def _resolve(st: PlanState, phrase: str, dates: list[dt.date], verb: str) -> tup
         return None, (f"Which activity should I {verb}? Name it as it appears in your itinerary, for example "
                       f"\"{verb.capitalize()} {_planned(st)[0][2]}\".")
     pool = _planned(st, dates or None)
-    found = [i for i in pool if _matches(st, phrase, i)]
     words = [w for w in re.findall(r"[a-z0-9]+", phrase) if w not in STOP and len(w) > 2]
+    if not words and pool:  # "an activity", "something": name it rather than guess
+        where = f" on {_day_label(st, dates[0])}" if dates else ""
+        listed = "; ".join(i[2] for i in pool[:8])
+        return None, f"Which activity{where} should I {verb}? Planned{where}: {listed}."
+    found = [i for i in pool if _matches(st, phrase, i)]
     named = [i for i in found if any(w in set(re.findall(r"[a-z0-9]+", _norm(i[2]))) for w in words)]
     if len(found) > 1 and len(named) == 1:  # "the museum" on a day with Pera Museum: the one its name says
         found = named
@@ -254,47 +375,60 @@ def _resolve(st: PlanState, phrase: str, dates: list[dt.date], verb: str) -> tup
 
 def interpret(request: str, st: PlanState) -> Interpretation:
     """Structured operations for a request, a clarification question, or why it cannot be done."""
-    text = _norm(request)
+    text = _norm(request.replace("€", " eur ").replace("£", " gbp "))
     if (why := _bad_day(text, st)) is not None:
         return Interpretation(infeasible=why)
     ops: list[RevisionOp] = []
     days = _day_refs(text, st)
-    budget = st.budget_report.budget_total
+    every_day = bool(re.search(r"\b(?:every|each|all(?: the)?)\s+(?:day|days|morning|mornings)\b|\bdaily\b"
+                               r"|\b(?:whole|entire) trip\b", text))
+    trip_cur = st.budget_report.currency
 
     # budget
     m = re.search(r"\b(reduce|cut|lower|decrease|drop|shrink|increase|raise|up)\b[^%]*?\bbudget\b[^%]*?(\d+(?:\.\d+)?)\s*%"
                   r"|\bbudget\b[^%]*?\b(reduce|cut|lower|decrease|increase|raise)\w*\b[^%]*?(\d+(?:\.\d+)?)\s*%"
                   r"|(\d+(?:\.\d+)?)\s*%\s*(less|lower|cheaper|more)\b", text)
-    absolute = re.search(r"\bbudget\b[^0-9$€£]*(?:to|of|at|is|=)?\s*[$€£]?\s*(\d[\d,]*(?:\.\d+)?)\b(?!\s*%)", text)
+    budget_at = re.search(r"\bbudget\b", text)
+    absolute = _amount_after(text, budget_at.end()) if budget_at else None
+    cheaper = re.search(r"\b(cheaper|less expensive|save money|lower (the )?cost|spend less|too expensive|"
+                        r"more affordable|budget[- ]friendly)\b", text)
     if m:
         verb = (m.group(1) or m.group(3) or m.group(6) or "").lower()
-        pct = Decimal(m.group(2) or m.group(4) or m.group(5))
-        if budget is None:
-            return Interpretation(infeasible="This trip has no budget yet, so it cannot be changed by a percentage. "
-                                             "Tell me the budget you want, for example \"Set my budget to 600\".")
-        up = verb in ("increase", "raise", "up", "more")
-        if not 0 < pct < 100 and not up:
-            return Interpretation(infeasible=f"A {pct}% reduction is not possible: give a percentage below 100.")
-        new = money(budget * (1 + pct / 100) if up else budget * (1 - pct / 100))
-        shown = f"{pct:f}"
-        shown = shown.rstrip("0").rstrip(".") if "." in shown else shown
-        ops.append(RevisionOp(kind="set_budget", amount=new,
-                              note=f"budget {'raised' if up else 'reduced'} by {shown}%: "
-                                   f"{budget} -> {new} {st.budget_report.currency}"))
-    elif absolute and re.search(r"\b(set|change|make|budget (?:to|of|is))\b", text):
-        new = money(Decimal(absolute.group(1).replace(",", "")))
-        ops.append(RevisionOp(kind="set_budget", amount=new,
-                              note=f"budget set to {new} {st.budget_report.currency}"))
+        op = budget_percent_op(st, Decimal(m.group(2) or m.group(4) or m.group(5)),
+                               verb in ("increase", "raise", "up", "more"))
+        if isinstance(op, Interpretation):
+            return op
+        ops.append(op)
+    elif absolute and re.search(r"\b(set|change|make|update|adjust|switch|reduce|lower|cut|raise|increase|want|keep|"
+                                r"exchange)\b|\bbudget\s+(?:to|of|is|=|at)\b|\bbudget\b.*\bto\b", text):
+        op = budget_op(st, *absolute)
+        if isinstance(op, Interpretation):
+            return op
+        ops.append(op)
     elif re.search(r"\bfree\b.*\b(alternative|option|attraction|place|instead)s?\b|\breplace\b.*\bexpensive\b.*\bfree\b",
                    text):
         ops.append(RevisionOp(kind="free_alternatives", note="paid attractions replaced by free ones where possible"))
-    elif re.search(r"\b(cheaper|less expensive|save money|lower (the )?cost|spend less|too expensive)\b", text):
-        ops.append(RevisionOp(kind="cheaper", note="the most expensive planned place replaced or removed"))
+    elif cheaper:
+        category = "restaurant" if re.search(r"\b(restaurants?|meals?|lunch|dinner|breakfast|cafes?|food|eat\w*)\b",
+                                             text) else None
+        named = re.search(r"\b(?:replace|swap|change)\s+(.+?)\s+(?:with|for|by)\b", text)
+        item = None
+        if named and not re.search(r"\b(expensive|pricey|costly)\b", named.group(1)):
+            item, _ = _resolve(st, re.sub(r"\b(on|from)\s+day\s*\d+\b", "", named.group(1)), days, "replace")
+        if item is not None:
+            ops.append(RevisionOp(kind="cheaper", place_id=item[1], date=item[0],
+                                  note=f"{item[2]} replaced by a cheaper researched place"))
+        else:
+            what = "restaurant" if category else "place"
+            where = f" on {_day_label(st, days[0])}" if days else ""
+            ops.append(RevisionOp(kind="cheaper", category=category, date=days[0] if days else None,
+                                  note=f"the most expensive planned {what}{where} replaced by a cheaper one"))
 
     # walking and transport
     w = (re.search(r"\bwalk\w*\b.*?\b(?:more than|over|longer than|max(?:imum)?|at most|under|less than|beyond|up to)"
                    r"\s*(\d{1,3})\s*(?:min|minute)", text)
          or re.search(r"\b(\d{1,3})\s*(?:min|minute)s?\b.*\bwalk", text))
+    family = re.search(r"\b(famil(?:y|ies)|kids?|children|child|toddlers?|stroller|pram|baby)\b", text)
     if w:
         minutes = int(w.group(1))
         if not 5 <= minutes <= 240:
@@ -303,29 +437,37 @@ def interpret(request: str, st: PlanState) -> Interpretation:
         ops.append(RevisionOp(kind="walk_limit", minutes=minutes, note=f"walking limit {minutes} minutes"))
     elif re.search(r"\b(taxi|cab|car|uber|ride|drive)\b", text) and re.search(r"\b(long|far|distance|instead of walk)", text):
         ops.append(RevisionOp(kind="use_rides", note="taxi or car for long walks"))
+    elif family:
+        ops.append(RevisionOp(kind="family_friendly", minutes=FAMILY_WALK_MINUTES, note=(
+            f"family pace: walks of at most {FAMILY_WALK_MINUTES} minutes, and days above the planner's daily "
+            "target made lighter")))
+    elif re.search(r"\b(less|reduce|minimi[sz]e|cut|shorter|fewer|lower|decrease)\b[^.]*\bwalk|\bwalk\w*\s+(?:less|time"
+                   r"\s+(?:down|shorter))\b|\btoo much walking\b", text):
+        op = reduce_walking_op(st)
+        if isinstance(op, Interpretation):
+            return op
+        ops.append(op)
 
-    # schedule
-    s = re.search(r"\bstart\b.*?\bat\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?", text)
-    if s and "start" in text:
+    # schedule: "Start Day 2 at 10 AM", "Change the departure time to 10 AM every day"
+    s = re.search(r"\b(?:start\w*|begin\w*|depart\w*|head(?:ing)? out)\b.*?\b(?:at|to|from|by|around)\s*(\d{1,2})"
+                  r"(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.|o'?clock)?", text)
+    if s:
         hour, minute = int(s.group(1)), int(s.group(2) or 0)
         half = (s.group(3) or "").replace(".", "")
         if half == "pm" and hour < 12:
             hour += 12
         if half == "am" and hour == 12:
             hour = 0
-        if not days:
-            return Interpretation(clarification="Which day should start later? For example \"Start Day 2 at 10 AM\".")
-        if not 0 <= hour <= 23 or minute > 59:
-            return Interpretation(infeasible="That is not a valid time.")
-        hhmm = f"{hour:02d}:{minute:02d}"
-        rules = st.rules
-        if not rules.day_start <= hhmm < rules.day_end:
-            return Interpretation(infeasible=f"The planning day runs {rules.day_start}-{rules.day_end}: a start at "
-                                             f"{hhmm} is outside it.")
-        ops += [RevisionOp(kind="start_time", date=d, time=hhmm, note=f"{_day_label(st, d)} starts at {hhmm}")
-                for d in days]
-    if re.search(r"\b(less crowded|less busy|lighter|more relaxed|fewer (activities|places|stops)|too (busy|full|much))\b",
-                 text):
+        dates = _dates(st) if every_day else days
+        if not dates:
+            return Interpretation(clarification=(
+                f"Which day should start at {hour:02d}:{minute:02d}: one day (for example \"Day 2\") or every day?"))
+        out = start_time_ops(st, dates, hour, minute)
+        if isinstance(out, Interpretation):
+            return out
+        ops += out
+    if re.search(r"\b(less crowded|less busy|less packed|less hectic|less rushed|lighter|more relaxed|quieter|"
+                 r"fewer (activities|places|stops|things)|too (busy|full|much|packed))\b", text) and not family:
         if not days:
             return Interpretation(clarification="Which day should be lighter? For example \"Make Day 4 less crowded\".")
         ops += [RevisionOp(kind="lighten_day", date=d, note=f"{_day_label(st, d)} made lighter") for d in days]
@@ -380,18 +522,23 @@ def interpret(request: str, st: PlanState) -> Interpretation:
             return Interpretation(clarification=problem) if "Which" in problem else Interpretation(infeasible=problem)
         ops.append(RevisionOp(kind="remove", place_id=item[1], date=item[0], note=f"{item[2]} removed"))
     elif add and not ops:
-        tag = _tag_of(add.group(1))
-        if tag is None:
+        tags = _tags_of(add.group(1))
+        if not tags:
             return Interpretation(clarification="What would you like more of? For example \"Add more nature "
                                                 "activities\" or \"Add more food experiences\".")
-        ops.append(RevisionOp(kind="add", tag=tag, date=days[0] if days else None,
-                              note=f"more {_label(tag)}" + (f" on {_day_label(st, days[0])}" if days else "")))
+        ops += [RevisionOp(kind="add", tag=tag, date=days[0] if days else None,
+                           note=f"more {_label(tag)}" + (f" on {_day_label(st, days[0])}" if days else ""))
+                for tag in tags]
     elif add_too:
-        tag = _tag_of(add_too.group(1))
-        if tag is None:
+        tags = _tags_of(add_too.group(1))
+        if not tags:
             return Interpretation(clarification="What would you like more of? For example \"Add more nature "
                                                 "activities\" or \"Add more food experiences\".")
-        ops.append(RevisionOp(kind="add", tag=tag, avoid_dates=lighter, note=f"more {_label(tag)} on the other days"))
+        ops += [RevisionOp(kind="add", tag=tag, avoid_dates=lighter, note=f"more {_label(tag)} on the other days")
+                for tag in tags]
+
+    if not ops and (why := _currency_only(text, st)) is not None:
+        return why
 
     if not ops:
         n_days = len(_dates(st))
@@ -402,6 +549,13 @@ def interpret(request: str, st: PlanState) -> Interpretation:
             + (f"\"Remove {first}\", \"Move {first} to {last}\", " if first else "")
             + f"\"Start Day 1 at 10 AM\", \"Make {last} less crowded\", \"I don't want to walk more than 15 "
             "minutes\" or \"Add more food experiences\"."))
+    return finalize(ops, st)
+
+
+def finalize(ops: list[RevisionOp], st: PlanState, source: Literal["rules", "revision_agent"] = "rules"
+             ) -> Interpretation:
+    """The checks every reading of a request goes through (the rules' and the Revision Agent's alike): a place
+    the traveller asked to visit is never removed or replaced."""
     required = {i.place_id for i in st.budget_report.selected if i.decision == "required"}
     for op in ops:
         if op.kind in ("remove", "replace") and op.place_id in required:
@@ -409,7 +563,73 @@ def interpret(request: str, st: PlanState) -> Interpretation:
             return Interpretation(infeasible=(
                 f"{name} is a place you asked to visit, so I will not {op.kind} it. If you no longer want it, plan "
                 f"the trip again without it; or I can move it to another day (\"Move {name} to Day 2\")."))
-    return Interpretation(ops=ops, understood=[o.note for o in ops])
+    return Interpretation(ops=ops, understood=[o.note for o in ops], source=source)
+
+
+RateFor = Callable[[str, str], "ExchangeRate | None"]
+
+
+def convert_budget_currency(interpretation: Interpretation, st: PlanState, rate_for: RateFor | None = None
+                            ) -> Interpretation:
+    """A budget given in another currency than the trip's, converted into the trip's currency.
+
+    The rate is the research's own convert_currency result for that exact direction (bundle.fx_results), else one
+    `rate_for(from, to)` fetches (the convert_currency tool). Without a rate nothing is changed and the traveller is
+    told so: an amount is never taken as if it were in the trip's currency, and no rate is ever assumed."""
+    from .budget import BudgetError, RateTable
+    if not any(op.kind == "set_budget" and op.currency for op in interpretation.ops):
+        return interpretation
+    trip_cur = st.budget_report.currency
+    try:
+        table = RateTable.from_tool_results(list(st.bundle.fx_results or []))
+    except BudgetError:
+        table = RateTable()
+    ops, understood = [], []
+    for op in interpretation.ops:
+        if op.kind != "set_budget" or not op.currency or op.currency == trip_cur:
+            ops.append(op)
+            understood.append(op.note)
+            continue
+        rate = table.get(op.currency, trip_cur)
+        if rate is None and rate_for is not None:
+            try:
+                rate = rate_for(op.currency, trip_cur)
+            except Exception:  # an unreachable rate service is the same as no rate
+                rate = None
+        if rate is None:
+            return Interpretation(infeasible=(
+                f"I could not get a verified exchange rate from {op.currency} to {trip_cur} right now, so I did not "
+                f"change your budget. Your trip's prices are in {trip_cur}: tell me the budget in {trip_cur}, or try "
+                "again in a moment."), source=interpretation.source)
+        converted = money(op.amount * rate.rate)
+        note = (f"budget set to {money(op.amount)} {op.currency} = {converted} {trip_cur} "
+                f"(rate {rate.describe()})")
+        ops.append(op.model_copy(update={"amount": converted, "currency": None, "note": note}))
+        understood.append(note)
+    return interpretation.model_copy(update={"ops": ops, "understood": understood})
+
+
+def _currency_only(text: str, st: PlanState) -> Interpretation | None:
+    """A request that names a currency but no budget: "exchange to 20 euro", "show prices in euros"."""
+    trip_cur = st.budget_report.currency
+    words = [CURRENCY_WORDS.get(w) for w in re.findall(r"[a-z]+|\$", text)]
+    named = next((c for c in words if c), None)
+    if named is None:
+        return None
+    amount = _amount_after(text)
+    if amount is not None:
+        value, cur = amount
+        cur = cur or named
+        return Interpretation(clarification=(
+            f"Do you want your total trip budget to be {money_text(value)} {cur}? Your trip's prices are in "
+            f"{trip_cur}, so I would convert it with the official exchange rate. Reply \"Set my budget to "
+            f"{money_text(value)} {cur}\" to confirm."))
+    if named != trip_cur and re.search(r"\b(currency|exchange|convert\w*|switch|change|show|display|prices?|in)\b", text):
+        return Interpretation(infeasible=(
+            f"The prices in this plan come from the research in {trip_cur}, the trip's currency, and I cannot show "
+            f"the whole itinerary in {named} without changing what was verified. I can set your budget in {named} "
+            f"instead (converted with the official rate), for example \"Set my budget to 500 {named}\"."))
+    return None
 
 
 # ------------------------------------------------------------------ applying it
@@ -720,7 +940,8 @@ def _op_lighten(e: _Edit, op: RevisionOp) -> None:
         e.notes.append(f"No other day had room for {e.name(pid)}, so it was left out (kept as an alternative).")
 
 
-def _op_budget(e: _Edit, *, amount: Decimal | None = None, cheaper_once: bool = False, free_only: bool = False) -> None:
+def _op_budget(e: _Edit, *, amount: Decimal | None = None, cheaper_once: bool = False, free_only: bool = False,
+               only: RevisionOp | None = None) -> None:
     """Fit the known costs to the budget by replacing (or removing) the most expensive non-required paid place,
     one at a time and only while the total is over: everything else stays. "cheaper" does one such step; "free
     alternatives" swaps each paid attraction for a free one where one fits."""
@@ -742,7 +963,10 @@ def _op_budget(e: _Edit, *, amount: Decimal | None = None, cheaper_once: bool = 
         if not free_only and not cheaper_once and (budget is None or known() <= budget):
             break
         paid = [(d, i) for d, ids in e.days.items() for i in ids if not e.required(i) and i not in tried
-                and (e.cost(i) or 0) > 0 and (not free_only or e.cands.get(i).category == "attraction")]
+                and (e.cost(i) or 0) > 0 and (not free_only or e.cands.get(i).category == "attraction")
+                and _in_scope(e, only, d, i)]
+        if not paid and only is not None and not tried:
+            raise RevisionInfeasible(_no_paid_in_scope(e, only))
         if not paid or (cheaper_once and tried):
             break
         need = (known() - budget) if budget is not None and not cheaper_once and not free_only else Decimal(0)
@@ -760,6 +984,8 @@ def _op_budget(e: _Edit, *, amount: Decimal | None = None, cheaper_once: bool = 
         day, pid = min(paid, key=key)
         tried.add(pid)
         tags = [t for t in (e.serves.get(pid) or getattr(e.place(pid), "tags", [])) if t in e.bundle.trip.interests]
+        if e.cands.get(pid).category == "restaurant":
+            tags = ["food"]  # a restaurant gives way only to another researched restaurant
         pool: list[str] = []
         for tag in tags or [None]:
             pool += [c for c in e.alternatives_pool(tag, cheaper_than=e.cost(pid), free_only=free_only)
@@ -767,8 +993,14 @@ def _op_budget(e: _Edit, *, amount: Decimal | None = None, cheaper_once: bool = 
         reason = ("Replaced by a free alternative, at your request" if free_only else
                   "Replaced to make the trip cheaper, at your request" if cheaper_once else
                   "Left out to fit your new budget")
-        if not _swap(e, pid, day, pool, reason, allow_remove=not free_only, kind="make_room",
-                     need=need if need > 0 else None) and free_only:
+        swapped = _swap(e, pid, day, pool, reason, allow_remove=not free_only and only is None, kind="make_room",
+                        need=need if need > 0 else None)
+        if not swapped and only is not None:
+            what = "restaurant" if e.cands.get(pid).category == "restaurant" else "place"
+            raise RevisionInfeasible(f"The research has no cheaper {what} with a known price that fits "
+                                     f"{_day_label(e.st, day)} in place of {e.name(pid)} ({e.cost(pid)} "
+                                     f"{e.st.budget_report.currency}), so I left it as planned.")
+        if not swapped and free_only:
             e.notes.append(f"No free researched place fits in place of {e.name(pid)} on {_day_label(e.st, day)}.")
     if amount is not None:
         before = {d.date: list(d.place_ids) for d in e.st.planner_report.assignment.days}
@@ -790,6 +1022,51 @@ def _op_budget(e: _Edit, *, amount: Decimal | None = None, cheaper_once: bool = 
                        "remaining paid places were asked for, or no cheaper researched place fits.")
 
 
+def _in_scope(e: _Edit, only: RevisionOp | None, day: dt.date, pid: str) -> bool:
+    """"Make it cheaper" narrowed by the request: one named place, a kind of place, one day."""
+    if only is None:
+        return True
+    if only.place_id and pid != only.place_id:
+        return False
+    if only.date and day != only.date:
+        return False
+    return not only.category or e.cands.get(pid).category == only.category
+
+
+def _no_paid_in_scope(e: _Edit, only: RevisionOp) -> str:
+    if only.place_id:
+        name = e.name(only.place_id)
+        if e.required(only.place_id):
+            return f"{name} is a place you asked to visit, so I will not replace it."
+        return (f"{name} has no known price (or is free), so I cannot tell that another place would be cheaper "
+                "without inventing a price.")
+    what = "restaurants" if only.category == "restaurant" else "places"
+    where = f" on {_day_label(e.st, only.date)}" if only.date else ""
+    return (f"None of the planned {what}{where} has a known price above zero, so I cannot tell which one is "
+            "expensive or find a verified cheaper one.")
+
+
+def _op_family(e: _Edit, op: RevisionOp) -> list[dt.date]:
+    """A family pace: the walking limit lowered to op.minutes (never raised), then every day above the Planner's
+    own daily target made lighter, its least important sight moved to a day with room (or kept as an
+    alternative)."""
+    walk_days: list[dt.date] = []
+    if e.rules.max_walk_minutes is None or e.rules.max_walk_minutes > op.minutes:
+        walk_days = _op_walk(e, op.minutes)
+    p = e.planner(e.ctx())
+    busy = sorted((d for d in e.days if len(p.sights(e.days[d])) > p.targets[d]),
+                  key=lambda d: -len(p.sights(e.days[d])))
+    for day in busy:
+        try:
+            _op_lighten(e, RevisionOp(kind="lighten_day", date=day))
+        except RevisionInfeasible as exc:
+            e.notes.append(str(exc))
+    if not walk_days and not busy and not e.affected:
+        e.notes.append(f"The plan already keeps walks to {e.rules.max_walk_minutes} minutes or less and no day is "
+                       "above the planner's daily target, so it already has a family pace.")
+    return walk_days
+
+
 def _op_walk(e: _Edit, minutes: int | None) -> list[dt.date]:
     """A walking limit: the trip's and the scheduler's. Dates with a planned walk over it are rescheduled: a better
     order where one exists, and every walk still over it is measured again (by car, as a ride, when the travel
@@ -809,6 +1086,19 @@ def _op_walk(e: _Edit, minutes: int | None) -> list[dt.date]:
         e.days[day] = p.best_order(day, e.days[day]) or e.days[day]
         e.affected.add(day)
     return days
+
+
+def _already_done(st: PlanState, interpretation: Interpretation) -> str:
+    """Why nothing changed, when the plan already does what was asked."""
+    kinds = {op.kind for op in interpretation.ops}
+    if kinds & {"walk_limit", "use_rides", "family_friendly"}:
+        limit = next((op.minutes for op in interpretation.ops if op.minutes), None) or current_walk_limit(st)
+        walks = [a.travel_minutes_from_previous or 0 for d in st.itinerary.days for a in d.activities
+                 if a.travel_mode_from_previous != "driving"]
+        longest = max(walks, default=0)
+        return (f"Your planned walks are already short: the longest is {longest} minutes, within {limit} minutes, so "
+                "nothing needed to change. Your itinerary is as it was.")
+    return "Nothing in the itinerary needed to change for this request."  # app/whatif.py reads this wording
 
 
 def _diff(st: PlanState, new: Itinerary, budget_note: str | None) -> tuple[list[str], list[dt.date], list[dt.date]]:
@@ -854,7 +1144,10 @@ def _run(st: PlanState, interpretation: Interpretation, travel_lookup: TravelLoo
                            if old is not None else f"Budget set to {money(op.amount)} {st.budget_report.currency}.")
             _op_budget(e, amount=op.amount)
         elif op.kind == "cheaper":
-            _op_budget(e, cheaper_once=True)
+            scoped = op if (op.place_id or op.category or op.date) else None
+            _op_budget(e, cheaper_once=True, only=scoped)
+        elif op.kind == "family_friendly":
+            walk_days = _op_family(e, op)
         elif op.kind == "free_alternatives":
             _op_budget(e, free_only=True)
         elif op.kind == "remove":
@@ -864,7 +1157,12 @@ def _run(st: PlanState, interpretation: Interpretation, travel_lookup: TravelLoo
         elif op.kind == "move":
             _op_move(e, op)
         elif op.kind == "add":
-            _op_add(e, op)
+            try:
+                _op_add(e, op)
+            except RevisionInfeasible as exc:  # "more shopping and culture": one impossible half does not block
+                if sum(o.kind == "add" for o in interpretation.ops) < 2:  # the other; it is said in the notes
+                    raise
+                e.notes.append(str(exc))
         elif op.kind == "start_time":
             e.rules = e.rules.model_copy(update={"day_starts": {**e.rules.day_starts, str(op.date): op.time}})
             e.affected.add(op.date)
@@ -942,7 +1240,7 @@ def apply_revision(request: str, st: PlanState, interpretation: Interpretation, 
             decided_by, agent_error = "python_fallback", f"{type(exc).__name__}: {str(exc)[:200]}"
             e, budget_note, walk_days = _run(st, interpretation, travel_lookup)
     if not e.affected and not budget_note and not walk_days:
-        raise RevisionInfeasible(" ".join(e.notes) or "Nothing in the itinerary needed to change for this request.")
+        raise RevisionInfeasible(" ".join(e.notes) or _already_done(st, interpretation))
 
     report = e.report()
     ctx = PlanningContext(report, e.bundle, travel_lookup, rules=e.rules)
@@ -974,7 +1272,9 @@ def apply_revision(request: str, st: PlanState, interpretation: Interpretation, 
                           "fit the new budget, so no activity had to change." + (
                               f" {unknown} price(s) are unknown and not counted." if unknown else ""))
         first = 2
-    if any(o.kind in ("walk_limit", "use_rides") for o in interpretation.ops):
+    if any(o.kind in ("walk_limit", "use_rides") for o in interpretation.ops) or (
+            any(o.kind == "family_friendly" for o in interpretation.ops)
+            and st.rules.max_walk_minutes != e.rules.max_walk_minutes):
         limit = e.rules.max_walk_minutes or 30
         acts = [a for d in itinerary.days if d.date in walk_days for a in d.activities]
         rides = sum(a.travel_mode_from_previous == "driving" for a in acts)
@@ -989,9 +1289,13 @@ def apply_revision(request: str, st: PlanState, interpretation: Interpretation, 
                 f" {still} walk(s) are still longer: no shorter order and no measured car time was available, so "
                 "they are flagged for you." if still else "")
         changes.insert(first, f"Walking limit {limit} minutes: {line}")
-    for op in interpretation.ops:
-        if op.kind == "start_time":
-            changes.insert(first, f"{_day_label(st, op.date)} now starts at {op.time}.")
+    starts = [op for op in interpretation.ops if op.kind == "start_time"]
+    for op in reversed(starts):  # inserted at one position: reversed, so they read Day 1, Day 2...
+        was = st.rules.day_starts.get(str(op.date), st.rules.day_start)
+        first_act = next((a.start_time for d in st.itinerary.days if d.date == op.date for a in d.activities), None)
+        already = was == op.time or (op.date in unchanged and first_act == op.time)
+        changes.insert(first, f"{_day_label(st, op.date)} " + (f"already started at {op.time}." if already
+                                                              else f"now starts at {op.time}."))
     return UserRevision(bundle=e.bundle, budget_report=report, planner_report=built, itinerary=itinerary,
                         rules=e.rules, changes=changes, unchanged_dates=unchanged, changed_dates=changed,
                         notes=e.notes, decision_points=points, decided_by=decided_by, agent_error=agent_error)

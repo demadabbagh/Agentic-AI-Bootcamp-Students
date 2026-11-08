@@ -130,3 +130,17 @@ describe('revisionBlockedReason', () => {
     assert.match(revisionBlockedReason({ ...CURRENT, plan_version: undefined }), /no longer has it in memory/)
   })
 })
+
+describe('applyRevision: what the assistant understood', () => {
+  it('shows how the request was read, for a revision and for a question', () => {
+    const revised = applyRevision(CURRENT, { ...REVISED, revision: { ...REVISED.revision,
+      understood: ['budget set to 200.00 EUR = 223.86 USD (rate EUR->USD 1.1193)'] } })
+    assert.deepEqual(revised.understood, ['budget set to 200.00 EUR = 223.86 USD (rate EUR->USD 1.1193)'])
+    const question = applyRevision(CURRENT, { status: 'needs_clarification',
+      message: 'Do you want your total trip budget to be 20 EUR?',
+      revision: { outcome: 'clarification', interpreted_by: 'revision_agent' } })
+    assert.equal(question.result, null)
+    assert.equal(question.outcome, 'clarification')
+    assert.deepEqual(question.understood, [])
+  })
+})

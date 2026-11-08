@@ -410,6 +410,9 @@ def _plan_and_verify(trip_info: dict, research_bundle: ResearchBundle, evidence_
         else:
             if commit:
                 session["plan_state"] = state
+                # a new plan: follow-ups in the revision chat no longer refer to the previous one
+                session.pop("revision_dialogue", None)
+                session.pop("revision_pending", None)
             plan_version = state.version
     print("=== TRAVELLER SUMMARY ===")
     print(summary)
