@@ -285,7 +285,8 @@ export default function TripDashboard() {
       text: isSample
         ? 'This is a sample Istanbul trip for previewing the dashboard. It was not planned for you.'
         : `Your ${destination} itinerary is ready to review. Check the verification status and any warnings before relying on it.`
-          + (revisionBlocked ? '' : ' You can ask me for changes, for example "Reduce my budget by 20%" or "Remove the museum on Day 2".'),
+          + (revisionBlocked ? '' : ' Ask me for changes in your own words, for example "Reduce my budget by 20%", '
+            + '"Make Day 2 less crowded" or "Change my total budget to 200 EUR".'),
     },
   ])
   const chatEnd = useRef(null)
@@ -365,7 +366,7 @@ export default function TripDashboard() {
       if (next.result) showRevised(next.result)
       setMessages((previous) => [...previous, {
         role: 'assistant', text: next.reply, changes: next.changes, moreChanges: next.moreChanges,
-        outcome: next.outcome,
+        outcome: next.outcome, understood: next.understood,
       }])
     } catch (err) {
       if (err instanceof AuthRequiredError) { // the session ended: log in again, then send the same change once
@@ -899,15 +900,37 @@ export default function TripDashboard() {
                         ? 'self-end bg-[#245c6a] text-white'
                         : item.error
                           ? 'self-start bg-red-50 text-red-700'
-                          : 'self-start bg-[#edf5f6] text-[#476774]'
+                          : item.outcome === 'not_feasible' || item.outcome === 'stale_plan'
+                            ? 'self-start border border-amber-200 bg-amber-50 text-amber-900'
+                            : item.outcome === 'clarification'
+                              ? 'self-start border border-[#b6dfe3] bg-white text-[#245c6a]'
+                              : 'self-start bg-[#edf5f6] text-[#476774]'
                     }`}
                   >
+                    {item.outcome === 'clarification' && (
+                      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[#5c8f99]">
+                        Question
+                      </span>
+                    )}
+                    {item.outcome === 'not_feasible' && (
+                      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-amber-700">
+                        Not changed
+                      </span>
+                    )}
+                    {item.understood?.length > 0 && item.outcome === 'revised' && (
+                      <p className="mb-1 text-xs leading-5 text-[#5c8f99]">
+                        Understood: {item.understood.join('; ')}
+                      </p>
+                    )}
                     {item.text}
                     {item.changes?.length > 0 && (
-                      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-5">
-                        {item.changes.map((change) => <li key={change}>{change}</li>)}
-                        {item.moreChanges > 0 && <li>and {item.moreChanges} more</li>}
-                      </ul>
+                      <>
+                        <p className="mt-2 text-xs font-semibold text-[#245c6a]">Changes applied</p>
+                        <ul className="mt-1 list-disc space-y-1 pl-5 text-xs leading-5">
+                          {item.changes.map((change) => <li key={change}>{change}</li>)}
+                          {item.moreChanges > 0 && <li>and {item.moreChanges} more</li>}
+                        </ul>
+                      </>
                     )}
                   </div>
                 ))}

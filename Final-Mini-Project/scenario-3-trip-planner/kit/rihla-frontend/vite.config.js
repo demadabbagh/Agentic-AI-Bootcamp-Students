@@ -9,7 +9,7 @@ export default defineConfig({
     proxy: {
       '/api': {
         // The backend to proxy to; RIHLA_BACKEND_URL lets a second backend be tried without editing this file.
-        target: process.env.RIHLA_BACKEND_URL || 'http://127.0.0.1:8000',
+       target: process.env.RIHLA_BACKEND_URL || 'http://127.0.0.1:8070',
         changeOrigin: true,
       },
     },

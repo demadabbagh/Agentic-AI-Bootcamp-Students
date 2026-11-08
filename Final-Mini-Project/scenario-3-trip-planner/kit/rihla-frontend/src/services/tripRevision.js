@@ -1,6 +1,13 @@
 import { validateTripResult } from './tripResult.js'
 
 const MAX_CHANGES_SHOWN = 12
+const MAX_UNDERSTOOD_SHOWN = 6
+
+// What the assistant took the request to mean (Python's words for the operations it applied or tried).
+function understoodOf(revision) {
+  return (Array.isArray(revision.understood) ? revision.understood : []).map(String).filter(Boolean)
+    .slice(0, MAX_UNDERSTOOD_SHOWN)
+}
 
 // Why the "Ask for a change" box cannot change this trip, or null when it can. A change is applied by the
 // backend to the plan it keeps for this session (app/revision.py), named by plan_version: without one there
@@ -32,6 +39,7 @@ export function applyRevision(current, response) {
       outcome: revision.outcome || response?.status || 'unknown',
       reply: message || 'The itinerary was not changed.',
       changes: [],
+      understood: understoodOf(revision),
     }
   }
 
@@ -45,5 +53,6 @@ export function applyRevision(current, response) {
     reply: message || 'Your itinerary has been updated.',
     changes: changes.slice(0, MAX_CHANGES_SHOWN),
     moreChanges: Math.max(0, changes.length - MAX_CHANGES_SHOWN),
+    understood: understoodOf(revision),
   }
 }
